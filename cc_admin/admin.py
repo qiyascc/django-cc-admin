@@ -158,7 +158,7 @@ class ModelAdminMixin:
                 label = label_for_field(name, self.model, self)
             except (AttributeError, FieldDoesNotExist):
                 continue
-            columns.append((name, plain(label)))
+            columns.append((name, capfirst(plain(label))))
         return columns
 
     def _cc_export_value(self, name, obj):

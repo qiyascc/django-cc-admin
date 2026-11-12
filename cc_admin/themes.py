@@ -4,6 +4,7 @@
 
 import json
 import re
+from urllib.parse import unquote
 from dataclasses import asdict, dataclass, field
 
 from django.utils.html import escape
@@ -101,7 +102,7 @@ def get_theme(key=None):
 def read_prefs(request):
     raw = request.COOKIES.get("cc_admin_prefs", "") if request else ""
     try:
-        data = json.loads(raw) if raw else {}
+        data = json.loads(unquote(raw)) if raw else {}
     except ValueError:
         data = {}
     return data if isinstance(data, dict) else {}
