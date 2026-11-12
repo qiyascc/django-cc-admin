@@ -60,6 +60,12 @@ class Product(models.Model):
     class Meta:
         ordering = ["name"]
 
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        obj = super().from_db(db, field_names, values)
+        obj.tracker_stock = obj.__dict__.get("stock")
+        return obj
+
     def __str__(self):
         return self.name
 
@@ -124,6 +130,12 @@ class Order(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        obj = super().from_db(db, field_names, values)
+        obj.tracker_status = obj.__dict__.get("status")
+        return obj
 
     def __str__(self):
         return self.number

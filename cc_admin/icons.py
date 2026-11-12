@@ -71,6 +71,9 @@ BASE = {
     "user",
     "x",
     "dot",
+    "bell",
+    "refresh-cw",
+    "check-check",
 }
 
 _used = contextvars.ContextVar("cc_admin_icons", default=None)
@@ -126,3 +129,11 @@ def sprite(extra=()):
         '<svg xmlns="http://www.w3.org/2000/svg" class="cc-sprite" aria-hidden="true" '
         'style="position:absolute;width:0;height:0;overflow:hidden">' + "".join(parts) + "</svg>"
     )
+
+
+def symbol(name):
+    found = symbols().get(str(name or ""))
+    if not found:
+        return ""
+    box, body = found
+    return f'<symbol id="cc-i-{name}" viewBox="{box}">{body}</symbol>'

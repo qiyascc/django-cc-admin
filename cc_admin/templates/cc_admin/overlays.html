@@ -99,6 +99,53 @@
   <div class="cc-keys-grid" data-keys-body></div>
 </dialog>
 {% endif %}
+{% if cc.notify.enabled and cc.notify.userSettings %}
+<dialog class="cc-dialog cc-notify-settings" data-notify-settings aria-label="{% translate 'Notification settings' %}">
+  <div class="cc-panel-head">
+    <div><b>{% translate 'Notifications' %}</b><small>{% translate 'Saved in this browser.' %}</small></div>
+    <button type="button" class="cc-icon-btn" data-close aria-label="{% translate 'Close' %}">{% icon "x" %}</button>
+  </div>
+  <div class="cc-ns">
+    <label class="cc-ns-row"><span class="cc-ns-icon">{% icon "message-square" %}</span><span class="cc-ns-text"><b>{% translate 'Popups' %}</b><small>{% translate 'Show new notifications in the corner of the screen.' %}</small></span><input type="checkbox" class="cc-switch" data-ns="popup"></label>
+    <label class="cc-ns-row"><span class="cc-ns-icon">{% icon "volume-2" %}</span><span class="cc-ns-text"><b>{% translate 'Sounds' %}</b><small>{% translate 'Play a short sound when something arrives.' %}</small></span><input type="checkbox" class="cc-switch" data-ns="sound"></label>
+    <div class="cc-ns-sub" data-ns-sound-box>
+      <div class="cc-ns-line">
+        <span>{% translate 'Sound' %}</span>
+        <select class="cc-select-sm" data-ns="tone">
+          <option value="">{% translate 'Match the notification' %}</option>
+          {% for s in "chime,pop,ping,bell,sparkle,cash,knock,blip,alert"|cc_split %}<option value="{{ s }}">{{ s|capfirst }}</option>{% endfor %}
+        </select>
+        <button type="button" class="cc-icon-btn" data-ns-preview aria-label="{% translate 'Play' %}" title="{% translate 'Play' %}">{% icon "play" %}</button>
+      </div>
+      <div class="cc-ns-line"><span>{% translate 'Volume' %}</span><input type="range" min="0" max="1" step="0.05" data-ns="volume" class="cc-ns-volume"></div>
+    </div>
+    <label class="cc-ns-row"><span class="cc-ns-icon">{% icon "monitor-smartphone" %}</span><span class="cc-ns-text"><b>{% translate 'Desktop notifications' %}</b><small data-ns-desktop-state>{% translate 'Shown by your browser when this tab is in the background.' %}</small></span><input type="checkbox" class="cc-switch" data-ns="desktop"></label>
+    {% if cc.push.enabled %}
+    <div class="cc-ns-row">
+      <span class="cc-ns-icon">{% icon "smartphone" %}</span>
+      <span class="cc-ns-text"><b>{% translate 'Push to this device' %}</b><small data-ns-push-state>{% translate 'Get notifications even when the admin is closed.' %}</small></span>
+      <input type="checkbox" class="cc-switch" data-ns-push>
+    </div>
+    <div class="cc-ns-sub"><button type="button" class="cc-btn cc-btn-sm" data-ns-test>{% icon "send" %}<span>{% translate 'Send me a test' %}</span></button></div>
+    {% endif %}
+    <div class="cc-ns-row">
+      <span class="cc-ns-icon">{% icon "moon-star" %}</span>
+      <span class="cc-ns-text"><b>{% translate 'Do not disturb' %}</b><small data-ns-dnd-state>{% translate 'No popups, sounds or desktop notifications. The bell still counts.' %}</small></span>
+    </div>
+    <div class="cc-ns-sub">
+      <div class="cc-segment" data-ns-dnd>
+        <button type="button" data-value="0">{% translate 'Off' %}</button>
+        <button type="button" data-value="60">{% translate '1 hour' %}</button>
+        <button type="button" data-value="240">{% translate '4 hours' %}</button>
+        <button type="button" data-value="tomorrow">{% translate 'Until tomorrow' %}</button>
+      </div>
+    </div>
+    {% if cc.live.enabled %}
+    <label class="cc-ns-row"><span class="cc-ns-icon">{% icon "radio" %}</span><span class="cc-ns-text"><b>{% translate 'Live updates' %}</b><small data-live-state>{% translate 'Lists, dashboards and badges refresh on their own.' %}</small></span><input type="checkbox" class="cc-switch" data-ns="live"></label>
+    {% endif %}
+  </div>
+</dialog>
+{% endif %}
 <dialog class="cc-dialog cc-confirm" data-confirm-dialog>
   <form method="dialog">
     <div class="cc-confirm-icon">{% icon "triangle-exclamation-point" %}</div>

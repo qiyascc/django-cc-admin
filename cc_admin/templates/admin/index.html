@@ -19,7 +19,7 @@
 
 {% block content %}
 {% cc_dashboard as cc_dash %}
-<div id="content-main" class="cc-grid">
+<div id="content-main" class="cc-grid"{% if cc.live.enabled and cc.live.dashboard %} data-live-dashboard data-live-version="{% cc_live_version '*' %}"{% endif %}>
   {% for widget in cc_dash.widgets %}
     {% include widget.template %}
   {% empty %}

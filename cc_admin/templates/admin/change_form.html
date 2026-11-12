@@ -26,6 +26,7 @@
 {% block content_title %}
   {% if cc.back_button and not is_popup and has_view_permission %}<a href="{% url opts|admin_urlname:'changelist' %}{% if preserved_filters %}?{{ preserved_filters }}{% endif %}" class="cc-back" data-back-link title="{% translate 'Back to the list' %}">{% icon "arrow-left" %}<span>{{ opts.verbose_name_plural|capfirst }}</span></a>{% endif %}
   <p class="cc-eyebrow">{{ opts.verbose_name|capfirst }}{% if change and original.pk %} · #{{ original.pk|unlocalize }}{% endif %}</p>
+  <div class="cc-presence" data-presence hidden></div>
   <h1 {% if change and original %}data-recent-title data-recent-model="{{ opts.verbose_name|capfirst }}"{% endif %}>{% if add %}{% blocktranslate with name=opts.verbose_name %}New {{ name }}{% endblocktranslate %}{% else %}{{ original|truncatewords:"18" }}{% endif %}</h1>
   {% if subtitle and add %}<p class="cc-lead">{{ subtitle }}</p>{% endif %}
 {% endblock %}
@@ -42,7 +43,7 @@
 {% endblock %}
 
 {% block content %}<div id="content-main">
-<form {% if has_file_field %}enctype="multipart/form-data" {% endif %}{% if form_url %}action="{{ form_url }}" {% endif %}method="post" id="{{ opts.model_name }}_form" class="cc-form{% if cc_compressed %} cc-compressed{% endif %}" novalidate data-cc-form{% if cc.char_counter %} data-char-counter{% endif %}{% if cc_warn_unsaved %} data-warn-unsaved{% endif %}{% if cc_conditional_fields and cc_conditional_fields != "{}" %} data-conditional="{{ cc_conditional_fields }}"{% endif %}>{% csrf_token %}{% block form_top %}{% endblock %}
+<form {% if has_file_field %}enctype="multipart/form-data" {% endif %}{% if form_url %}action="{{ form_url }}" {% endif %}method="post" id="{{ opts.model_name }}_form" class="cc-form{% if cc_compressed %} cc-compressed{% endif %}" novalidate data-cc-form{% if cc.char_counter %} data-char-counter{% endif %}{% if change and original and cc.live.enabled and cc.live.forms and not is_popup %} data-live-object="{% cc_live_object opts original %}"{% endif %}{% if cc_warn_unsaved %} data-warn-unsaved{% endif %}{% if cc_conditional_fields and cc_conditional_fields != "{}" %} data-conditional="{{ cc_conditional_fields }}"{% endif %}>{% csrf_token %}{% block form_top %}{% endblock %}
 <div>
 {% if is_popup %}<input type="hidden" name="{{ is_popup_var }}" value="1">{% endif %}
 {% if to_field %}<input type="hidden" name="{{ to_field_var }}" value="{{ to_field }}">{% endif %}

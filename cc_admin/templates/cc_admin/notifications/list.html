@@ -1,0 +1,45 @@
+{% extends "admin/base_site.html" %}
+{% load i18n cc_admin %}
+
+{% block bodyclass %}{{ block.super }} cc-notes-page{% endblock %}
+{% block breadcrumbs %}<ol class="breadcrumbs"><li><a href="{% url 'admin:index' %}">{% translate 'Home' %}</a></li><li aria-current="page">{% translate 'Notifications' %}</li></ol>{% endblock %}
+{% block content_title %}
+  <h1>{% translate 'Notifications' %}</h1>
+  <p class="cc-lead">{% blocktranslate count counter=unread %}{{ counter }} unread{% plural %}{{ counter }} unread{% endblocktranslate %}</p>
+{% endblock %}
+{% block object-tools %}
+<div class="cc-tools">
+  {% if cc.notify.userSettings %}<button type="button" class="cc-btn" data-notify-settings-open>{% icon "settings-2" %}<span>{% translate 'Settings' %}</span></button>{% endif %}
+  {% if unread %}<form method="post" action="{% url 'admin:cc_notifications_read' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="cc-btn">{% icon "check-check" %}<span>{% translate 'Mark all read' %}</span></button></form>{% endif %}
+  {% if can_broadcast %}<a href="{% url 'admin:cc_notifications_send' %}" class="cc-btn cc-btn-primary">{% icon "send" %}<span>{% translate 'Send a notification' %}</span></a>{% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <nav class="cc-tabs cc-tabs-page">
+    <a href="?" class="cc-tab{% if not only_unread %} is-active{% endif %}">{% translate 'All' %}</a>
+    <a href="?filter=unread" class="cc-tab{% if only_unread %} is-active{% endif %}">{% translate 'Unread' %}{% if unread %}<em class="cc-badge cc-tone-accent">{{ unread }}</em>{% endif %}</a>
+  </nav>
+  <div class="cc-card" style="padding:0;overflow:hidden;margin-top:16px">
+    {% for n in page %}
+      <a class="cc-ntf{% if not n.is_read %} is-unread{% endif %}" href="{% firstof n.link '#' %}" data-note="{{ n.pk }}">
+        <span class="cc-ntf-icon cc-tone-{{ n.level }}">{% if n.icon %}{% icon n.icon %}{% elif n.level == "success" %}{% icon "circle-check" %}{% elif n.level == "warning" %}{% icon "triangle-exclamation-point" %}{% elif n.level == "danger" %}{% icon "circle-exclamation-point" %}{% else %}{% icon "bell" %}{% endif %}</span>
+        <span class="cc-ntf-text"><b>{{ n.title }}</b>{% if n.body %}<small>{{ n.body }}</small>{% endif %}<time datetime="{{ n.created_at|date:'c' }}">{% if n.actor %}{% firstof n.actor.get_full_name n.actor.get_username %} · {% endif %}{{ n.created_at|timesince }} {% translate 'ago' %}</time></span>
+        <i class="cc-ntf-dot"></i>
+      </a>
+    {% empty %}
+      <div class="cc-bell-empty">{% icon "bell" %}<span>{% if only_unread %}{% translate 'Nothing unread. Nice.' %}{% else %}{% translate 'No notifications yet.' %}{% endif %}</span></div>
+    {% endfor %}
+  </div>
+  {% if page.has_other_pages %}
+    <nav class="cc-pager" style="margin-top:14px">
+      <span class="cc-pager-count">{% blocktranslate with n=page.number total=page.paginator.num_pages %}Page {{ n }} of {{ total }}{% endblocktranslate %}</span>
+      <div class="cc-pages">
+        {% if page.has_previous %}<a class="cc-pg" href="?page={{ page.previous_page_number }}{% if only_unread %}&filter=unread{% endif %}" data-page-prev>{% icon "chevron-left" %}</a>{% endif %}
+        {% if page.has_next %}<a class="cc-pg" href="?page={{ page.next_page_number }}{% if only_unread %}&filter=unread{% endif %}" data-page-next>{% icon "chevron-right" %}</a>{% endif %}
+      </div>
+    </nav>
+  {% endif %}
+</div>
+{% endblock %}

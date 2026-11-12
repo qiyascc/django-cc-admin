@@ -1,0 +1,21 @@
+{% load i18n cc_admin %}<div class="cc-bell" data-menu data-bell>
+  <button type="button" class="cc-icon-btn cc-bell-btn" data-menu-toggle aria-label="{% translate 'Notifications' %}" title="{% translate 'Notifications' %}">{% icon "bell" %}<em class="cc-bell-count" data-bell-count{% if not cc.notify.unread %} hidden{% endif %}>{{ cc.notify.unread }}</em></button>
+  <div class="cc-menu cc-menu-right cc-bell-panel" role="dialog" aria-label="{% translate 'Notifications' %}">
+    <div class="cc-bell-head">
+      <b>{% translate 'Notifications' %}</b>
+      <div class="cc-bell-tools">
+        <button type="button" class="cc-link-btn" data-bell-readall>{% icon "check-check" %}<span>{% translate 'Mark all read' %}</span></button>
+        {% if cc.notify.userSettings %}<button type="button" class="cc-icon-btn" data-notify-settings-open aria-label="{% translate 'Notification settings' %}" title="{% translate 'Notification settings' %}">{% icon "settings-2" %}</button>{% endif %}
+      </div>
+    </div>
+    <div class="cc-segment cc-bell-tabs" data-bell-filter>
+      <button type="button" data-value="all" class="is-on">{% translate 'All' %}</button>
+      <button type="button" data-value="unread">{% translate 'Unread' %}</button>
+    </div>
+    <div class="cc-bell-list" data-bell-list><div class="cc-bell-empty">{% icon "bell" %}<span>{% translate 'Loading…' %}</span></div></div>
+    <div class="cc-bell-foot">
+      <a href="{{ cc.notify.list }}">{% translate 'See all' %}</a>
+      {% if cc.notify.send %}<a href="{{ cc.notify.send }}">{% icon "send" %}<span>{% translate 'Send one' %}</span></a>{% endif %}
+    </div>
+  </div>
+</div>

@@ -63,7 +63,7 @@
     <p class="errornote">{% blocktranslate count counter=cl.formset.total_error_count %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktranslate %}</p>
     {{ cl.formset.non_form_errors }}
   {% endif %}
-  <div class="module cc-changelist{% if cl.has_filters %} filtered{% endif %}{% if cc_model_admin.list_disable_select_all %} cc-no-select-all{% endif %}" id="changelist" data-model="{{ cl.opts.app_label }}.{{ cl.opts.model_name }}"{% if cc_sortable %} data-sort-url="{{ cc_sort_url }}"{% endif %}{% if cc_model_admin.list_horizontal_scrollbar_top %} data-top-scroll{% endif %}>
+  <div class="module cc-changelist{% if cl.has_filters %} filtered{% endif %}{% if cc_model_admin.list_disable_select_all %} cc-no-select-all{% endif %}" id="changelist" data-model="{{ cl.opts.app_label }}.{{ cl.opts.model_name }}"{% if cc_sortable %} data-sort-url="{{ cc_sort_url }}"{% endif %}{% if cc_model_admin.list_horizontal_scrollbar_top %} data-top-scroll{% endif %}{% if cc.live.enabled and cc.live.lists and not is_popup %} data-live-model="{{ cl.opts.app_label }}.{{ cl.opts.model_name }}" data-live-version="{% cc_live_version cl.opts %}"{% endif %}>
     <div class="cc-list-toolbar">
       {% block search %}{% search_form cl %}{% endblock %}
       <div class="cc-list-tools">

@@ -25,6 +25,8 @@ class Theme:
     extends: str = ""
     tokens: dict = field(default_factory=dict)
     dark: dict = field(default_factory=dict)
+    default_scheme: str = ""
+    density: str = ""
 
     @property
     def css_key(self):
@@ -62,24 +64,56 @@ BUILTIN = [
 ]
 
 
-def _custom_themes():
-    themes = []
+def _spec_tokens(spec):
+    colors = spec.get("colors") or {}
+    light = {
+        **color_tokens({k: v for k, v in colors.items() if k not in ("light", "dark")}),
+        **color_tokens(colors.get("light", {})),
+        **font_tokens(spec.get("fonts")),
+        **radius_tokens(spec.get("radius")),
+        **(spec.get("tokens") or {}),
+    }
+    dark = {**color_tokens(colors.get("dark", {})), **(spec.get("dark") or {})}
+    return light, dark
+
+
+def _from_spec(key, spec, base):
+    light, dark = _spec_tokens(spec)
+    builtin = base is not None and base.key == key
+    return Theme(
+        key=key,
+        label=str(spec.get("label", base.label if builtin else key.replace("_", " ").title())),
+        note=str(spec.get("note", base.note if builtin else "")),
+        layout=spec.get("layout", base.layout if base else "sidebar"),
+        schemes=tuple(spec.get("schemes", base.schemes if base else ("light", "dark"))),
+        swatch=tuple(spec.get("swatch", base.swatch if base else ("#fff", "#fff", "#000", "#000"))),
+        extends="" if builtin else (base.key if base else "aurora"),
+        tokens=light,
+        dark=dark,
+        default_scheme=spec.get("scheme", ""),
+        density=spec.get("density", ""),
+    )
+
+
+def _configured():
+    builtin = registry_builtin()
+    themes = dict(builtin)
     for key, spec in (conf.get("THEMES") or {}).items():
-        base = registry_builtin().get(spec.get("extends", "aurora"))
-        themes.append(
-            Theme(
-                key=key,
-                label=spec.get("label", key.title()),
-                note=spec.get("note", ""),
-                layout=spec.get("layout", base.layout if base else "sidebar"),
-                schemes=tuple(spec.get("schemes", base.schemes if base else ("light", "dark"))),
-                swatch=tuple(spec.get("swatch", base.swatch if base else ("#fff", "#fff", "#000", "#000"))),
-                extends=base.key if base else "aurora",
-                tokens=spec.get("tokens", {}),
-                dark=spec.get("dark", {}),
-            )
-        )
+        spec = spec or {}
+        if spec.get("enabled") is False:
+            themes.pop(key, None)
+            continue
+        base = builtin.get(key) or builtin.get(spec.get("extends", "aurora")) or builtin["aurora"]
+        themes[key] = _from_spec(key, spec, base)
+    order = conf.get("THEME_ORDER")
+    if order:
+        ranked = {k: i for i, k in enumerate(order)}
+        themes = dict(sorted(themes.items(), key=lambda item: ranked.get(item[0], len(ranked))))
     return themes
+
+
+def _custom_themes():
+    return [t for t in _configured().values() if t.tokens or t.dark]
 
 
 def registry_builtin():
@@ -87,14 +121,16 @@ def registry_builtin():
 
 
 def registry():
-    themes = {t.key: t for t in BUILTIN}
-    themes.update({t.key: t for t in _custom_themes()})
+    themes = _configured()
+    if not themes:
+        fallback = registry_builtin().get(conf.get("THEME")) or registry_builtin()["aurora"]
+        themes = {fallback.key: fallback}
     return themes
 
 
 def get_theme(key=None):
     themes = registry()
-    return themes.get(key) or themes.get(conf.get("THEME")) or themes["aurora"]
+    return themes.get(key) or themes.get(conf.get("THEME")) or themes.get("aurora") or next(iter(themes.values()))
 
 
 def read_prefs(request):
@@ -109,8 +145,8 @@ def read_prefs(request):
 def resolve(request):
     prefs = read_prefs(request) if conf.get("THEME_SWITCHER") else {}
     theme = get_theme(prefs.get("theme"))
-    scheme = prefs.get("scheme") if prefs.get("scheme") in SCHEMES else conf.get("COLOR_SCHEME")
-    density = prefs.get("density") if prefs.get("density") in DENSITIES else conf.get("DENSITY")
+    scheme = prefs.get("scheme") if prefs.get("scheme") in SCHEMES else (theme.default_scheme or conf.get("COLOR_SCHEME"))
+    density = prefs.get("density") if prefs.get("density") in DENSITIES else (theme.density or conf.get("DENSITY"))
     layout = conf.get("LAYOUT") if conf.get("LAYOUT") in LAYOUTS else theme.layout
     return {
         "theme": theme,
@@ -332,4 +368,4 @@ def token_css():
 
 def user_css(request):
     mine = user_tokens(request)
-    return f"html.cc[data-scheme]{{{_declarations(mine)}}}" if mine else ""
+    return f"html.cc[data-scheme][data-skin]{{{_declarations(mine)}}}" if mine else ""

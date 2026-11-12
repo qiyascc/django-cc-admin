@@ -8,6 +8,7 @@ from django.utils.text import capfirst
 from . import conf
 
 GUESSES = [
+    (("push",), "smartphone"),
     (("user", "member", "account", "profile", "staff", "person", "people"), "users"),
     (("group", "role", "permission"), "shield"),
     (("customer", "client", "contact", "lead"), "circle-user"),
@@ -122,6 +123,7 @@ def build(request, context=None):
                     "icon": raw.get("icon") or "dot",
                     "url": conf.link(raw.get("link"), request),
                     "badge": _badge(raw, request),
+                    "badge_key": f"nav:{conf.link(raw.get('link'), request)}" if raw.get("badge") is not None else "",
                     "badge_variant": raw.get("badge_variant", "accent"),
                     "external": str(raw.get("link", "")).startswith("http"),
                     "active": bool(conf.evaluate(raw.get("active"), request)) if raw.get("active") is not None else False,
@@ -208,6 +210,7 @@ def tabs(request, opts=None):
                     "icon": raw.get("icon"),
                     "url": url,
                     "badge": _badge(raw, request),
+                    "badge_key": f"tab:{url}" if raw.get("badge") is not None else "",
                     "active": bool(conf.evaluate(raw.get("active"), request))
                     if raw.get("active") is not None
                     else request.get_full_path() == url or request.path == url,
@@ -219,3 +222,19 @@ def tabs(request, opts=None):
                     t["active"] = True
         break
     return found
+
+
+def badges(request):
+    found = {}
+    for spec in conf.get("SIDEBAR").get("navigation") or []:
+        spec = conf.evaluate(spec, request)
+        if not spec or not _allowed(spec, request):
+            continue
+        for raw in spec.get("items", []):
+            if raw.get("badge") is not None and _allowed(raw, request):
+                found[f"nav:{conf.link(raw.get('link'), request)}"] = _badge(raw, request)
+    for spec in conf.get("TABS") or []:
+        for raw in spec.get("items", []):
+            if raw.get("badge") is not None and _allowed(raw, request):
+                found[f"tab:{conf.link(raw.get('link'), request)}"] = _badge(raw, request)
+    return {key: (str(value) if value is not None else "") for key, value in found.items()}

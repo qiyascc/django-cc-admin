@@ -150,7 +150,7 @@ class Command(BaseCommand):
             order.total = total
         OrderItem.objects.bulk_create(items)
         Order.objects.bulk_update(orders, ["total"], batch_size=500)
-        for order in rnd.sample(orders, 60):
+        for order in rnd.sample(orders, min(60, len(orders))):
             Note.objects.create(order=order, author=rnd.choice(["Aylin", "Murad", "Support"]), body=rnd.choice(NOTES), created_at=order.created_at + datetime.timedelta(hours=3))
         self.team()
         user, _ = get_user_model().objects.get_or_create(username="admin", defaults={"email": "admin@example.com", "first_name": "Qiyas", "last_name": "Sadıqov", "is_staff": True, "is_superuser": True})
@@ -166,6 +166,7 @@ class Command(BaseCommand):
             entries.append(LogEntry(user=user, content_type=product_ct, object_id=str(product.pk), object_repr=str(product), action_flag=ADDITION if i == 0 else CHANGE, change_message="Updated price.", action_time=now - datetime.timedelta(hours=3 + i * 5)))
         entries.extend(self.history(rnd, now, user, {"order": orders, "product": products, "customer": customers, "category": list(Category.objects.all())}))
         LogEntry.objects.bulk_create(entries, batch_size=1000)
+        self.inbox(rnd, now, user, orders, products)
         self.stdout.write(self.style.SUCCESS(f"{len(products)} products, {len(customers)} customers, {len(orders)} orders, {len(items)} items. Log in as admin / admin."))
 
     def team(self):
@@ -218,3 +219,16 @@ class Command(BaseCommand):
                     moment = timezone.make_aware(datetime.datetime.combine(day, datetime.time(rnd.randint(8, 19), rnd.randint(0, 59))))
                     entries.append(LogEntry(user=user, content_type=types[name], object_id=str(obj.pk), object_repr=str(obj)[:200], action_flag=flag, change_message=message, action_time=moment))
         return entries
+
+    def inbox(self, rnd, now, user, orders, products):
+        from cc_admin.models import Notification
+
+        Notification.objects.all().delete()
+        rows = []
+        recent = sorted(orders, key=lambda o: o.created_at, reverse=True)[:6]
+        for i, order in enumerate(recent):
+            rows.append(Notification(recipient=user, title=f"New order {order.number}", body=f"{order.customer} · ${order.total}", level="success", icon="receipt", sound="cash", link=f"/admin/shop/order/{order.pk}/change/", created_at=order.created_at, read_at=None if i < 2 else order.created_at))
+        for product in [p for p in products if 0 < p.stock < 10][:2]:
+            rows.append(Notification(recipient=user, title=f"{product.name} is running out", body=f"Only {product.stock} left in stock.", level="warning", icon="package", link=f"/admin/shop/product/{product.pk}/change/", created_at=now - datetime.timedelta(hours=rnd.randint(2, 30))))
+        rows.append(Notification(recipient=user, title="Weekly report is ready", body="Revenue was up 12% on last week.", level="info", icon="chart-pie", link="/admin/shop/order/reports/", created_at=now - datetime.timedelta(days=2), read_at=now))
+        Notification.objects.bulk_create(sorted(rows, key=lambda n: n.created_at))

@@ -57,6 +57,8 @@
             {% icon "search" %}<span>{% translate 'Search or jump to' %}</span><kbd data-shortcut="palette"></kbd>
           </button>
         {% endif %}
+        {% if cc.live.enabled %}<span class="cc-live-dot" data-live-dot data-state="wait" title="{% translate 'Live updates' %}"></span>{% endif %}
+        {% if cc.notify.enabled and cc.notify.bell and has_permission %}{% include "cc_admin/bell.html" %}{% endif %}
         {% block usertools %}
           {% if has_permission %}
             {% include "cc_admin/usermenu.html" %}
@@ -66,6 +68,7 @@
     </header>
     {% endif %}
     <main id="content-start" class="cc-content content" tabindex="-1">
+      {% if cc.announcements %}{% include "cc_admin/announcements.html" %}{% endif %}
       {% block messages %}
         {% if messages %}
           <ul class="cc-toasts messagelist" data-toasts>{% for message in messages %}
@@ -93,6 +96,7 @@
   </div>
 </div>
 {% if not is_popup and user.is_authenticated %}{% include "cc_admin/overlays.html" %}{% endif %}
+{% if cc.notify.enabled %}<div class="cc-pops" data-pops data-position="{{ cc.notify.position }}" aria-live="polite"></div>{% endif %}
 <form id="cc-action-form" method="post" hidden>{% csrf_token %}</form>
 <script type="application/json" id="cc-config"{% cc_nonce %}>{{ cc.client|safe }}</script>
 {% block extrabody %}{% endblock extrabody %}

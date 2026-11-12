@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "django-cc-admin"
 version = "0.1.0"
-description = "A modern skin and toolkit for the Django admin: 15 themes, a dashboard built from settings, a command palette and keyboard-first lists."
+description = "A modern skin and toolkit for the Django admin: 15 themes, a dashboard built from settings, live updates, notifications, a command palette and keyboard-first lists."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -31,6 +31,11 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 ]
 dependencies = ["Django>=5.0"]
+
+[project.optional-dependencies]
+live = ["channels>=4.0", "daphne>=4.0"]
+push = ["pywebpush>=2.0"]
+all = ["channels>=4.0", "daphne>=4.0", "pywebpush>=2.0"]
 
 [project.urls]
 Homepage = "https://github.com/qiyascc/django-cc-admin"

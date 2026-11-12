@@ -10,11 +10,12 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.forms import CheckboxInput, CheckboxSelectMultiple, RadioSelect
 from django.templatetags.static import static
 from django.urls import NoReverseMatch, reverse
+from django.utils import timezone
 from django.utils.html import escape, format_html, format_html_join
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
-from .. import __version__, activity, charts, conf, dashboard, icons, navigation, shortcuts, themes
+from .. import __version__, activity, charts, conf, dashboard, icons, live, navigation, notify, shortcuts, themes
 
 register = template.Library()
 
@@ -122,6 +123,9 @@ def cc_setup(context):
     prefix = conf.get("ENVIRONMENT_TITLE_PREFIX")
     if prefix is True and environment:
         prefix = f"[{environment['label']}]"
+    staff = request is not None and getattr(request, "user", None) is not None and request.user.is_authenticated and request.user.is_staff and context.get("has_permission", True)
+    live_client = _live_client(request, staff)
+    notify_client, push_client = _notify_client(request, staff)
     show_activity = request is not None and getattr(request, "user", None) is not None and request.user.is_authenticated and activity.enabled(request)
     data = {
         "version": __version__,
@@ -143,6 +147,10 @@ def cc_setup(context):
         "activity_url": activity.url(request, request.user) if show_activity else "",
         "activity_team_url": activity.url(request) if show_activity and activity.settings().get("team") and activity.can_see_others(request) else "",
         "activity_menu": show_activity and activity.settings().get("menu"),
+        "notify": notify_client,
+        "push": push_client,
+        "live": live_client,
+        "announcements": _announcements(request) if staff else [],
         "theme": theme,
         "scheme": resolved["scheme"],
         "density": resolved["density"],
@@ -186,7 +194,12 @@ def cc_setup(context):
             "perPage": conf.get("LIST_PER_PAGE_OPTIONS") or [],
             "fonts": {f: themes.font_stack(f) for f in themes.user_fonts()},
             "site": site_url or "",
-            "themes": {t.key: {"label": t.label, "layout": t.layout, "schemes": list(t.schemes), "css": t.css_key} for t in registry.values()},
+            "themes": {t.key: {"label": t.label, "layout": t.layout, "schemes": list(t.schemes), "css": t.css_key, "scheme": t.default_scheme, "density": t.density} for t in registry.values()},
+            "defaultScheme": conf.get("COLOR_SCHEME"),
+            "defaultDensity": conf.get("DENSITY"),
+            "live": live_client,
+            "notify": notify_client,
+            "push": push_client,
             "models": [{"title": m["title"], "app": m["app"], "icon": m["icon"], "url": m["url"], "add": m["add_url"], "key": m["key"]} for m in data["models"]],
             "search": _search_url(request),
         },
@@ -194,6 +207,111 @@ def cc_setup(context):
     ).replace("</", "<\\/")
     context["cc"] = data
     return ""
+
+
+def _url(request, name):
+    site = getattr(request, "_cc_admin_site", None)
+    try:
+        return reverse(f"{site.name if site else 'admin'}:{name}")
+    except NoReverseMatch:
+        return ""
+
+
+def _live_client(request, staff):
+    data = live.settings()
+    if not staff or not data.get("enabled"):
+        return {"enabled": False}
+    ws = data.get("url") or "/ws/cc-admin/"
+    return {
+        "enabled": True,
+        "transport": data.get("transport", "poll"),
+        "poll": _url(request, "cc_live"),
+        "stream": _url(request, "cc_live_stream"),
+        "ws": ws,
+        "interval": max(1, int(data.get("interval") or 5)),
+        "hidden": max(2, int(data.get("hidden_interval") or 30)),
+        "lists": data.get("lists"),
+        "forms": bool(data.get("forms")),
+        "presence": bool(data.get("presence")),
+        "dashboard": bool(data.get("dashboard")),
+        "dashboardInterval": max(5, int(data.get("dashboard_interval") or 30)),
+        "badges": bool(data.get("badges")),
+        "highlight": bool(data.get("highlight")),
+    }
+
+
+def _notify_client(request, staff):
+    data = notify.settings()
+    if not staff or not data.get("enabled"):
+        return {"enabled": False}, {"enabled": False}
+    from ..models import Notification
+
+    mine = Notification.objects.filter(recipient=request.user)
+    since = mine.order_by("-id").values_list("id", flat=True).first() or 0
+    unread = mine.filter(read_at__isnull=True).count()
+    client = {
+        "enabled": True,
+        "bell": bool(data.get("bell")),
+        "popup": bool(data.get("popup")),
+        "position": data.get("position", "bottom-right"),
+        "duration": float(data.get("duration") or 0),
+        "max": int(data.get("max") or 4),
+        "sound": data.get("sound") or "none",
+        "sounds": data.get("sounds") or {},
+        "volume": float(data.get("volume") if data.get("volume") is not None else 0.6),
+        "desktop": bool(data.get("desktop")),
+        "desktopWhen": data.get("desktop_when", "hidden"),
+        "userSettings": bool(data.get("user_settings")),
+        "since": since,
+        "unread": unread,
+        "list": _url(request, "cc_notifications"),
+        "read": _url(request, "cc_notifications_read"),
+        "send": _url(request, "cc_notifications_send") if conf.rule(data.get("broadcast"), request) else "",
+    }
+    push = conf.get("PUSH")
+    push_client = {"enabled": False}
+    if push.get("enabled") and push.get("vapid_public_key"):
+        push_client = {
+            "enabled": True,
+            "key": push.get("vapid_public_key"),
+            "subscribe": _url(request, "cc_push_subscribe"),
+            "unsubscribe": _url(request, "cc_push_unsubscribe"),
+            "test": _url(request, "cc_push_test"),
+            "sw": _url(request, "cc_service_worker"),
+            "scope": _url(request, "index"),
+        }
+    return client, push_client
+
+
+def _announcements(request):
+    found = []
+    today = timezone.localdate()
+    for raw in conf.evaluate(conf.get("ANNOUNCEMENTS"), request) or []:
+        raw = conf.evaluate(raw, request)
+        if not raw or not raw.get("id"):
+            continue
+        if raw.get("permission") is not None and not conf.rule(raw["permission"], request):
+            continue
+        start, end = raw.get("start"), raw.get("end")
+        if start and str(start)[:10] > today.isoformat():
+            continue
+        if end and str(end)[:10] < today.isoformat():
+            continue
+        found.append(
+            {
+                "id": str(raw["id"]),
+                "title": raw.get("title", ""),
+                "text": raw.get("text", ""),
+                "style": raw.get("style", "banner"),
+                "tone": raw.get("tone", "info"),
+                "icon": raw.get("icon") or {"info": "megaphone", "success": "party-popper", "warning": "triangle-exclamation-point", "danger": "octagon-exclamation-point"}.get(raw.get("tone", "info"), "megaphone"),
+                "link": conf.link(raw.get("link"), request) if raw.get("link") else "",
+                "link_text": raw.get("link_text", ""),
+                "dismissible": raw.get("dismissible", True),
+                "image": conf.asset(raw.get("image"), request) if raw.get("image") else "",
+            }
+        )
+    return found
 
 
 def _commands(request):
@@ -536,3 +654,20 @@ def cc_per_page(cl):
     model_admin = cl.model_admin
     options = per_page_options(model_admin) if hasattr(model_admin, "cc_row_meta") else []
     return {"options": options, "key": f"{cl.opts.app_label}.{cl.opts.model_name}"}
+
+
+@register.simple_tag
+def cc_live_version(label):
+    if not live.settings().get("enabled"):
+        return ""
+    if hasattr(label, "app_label"):
+        label = f"{label.app_label}.{label.model_name}"
+    return live.versions([label]).get(label, "")
+
+
+@register.simple_tag
+def cc_live_object(opts, obj):
+    if obj is None or getattr(obj, "pk", None) is None or not live.settings().get("enabled"):
+        return ""
+    label = f"{opts.app_label}.{opts.model_name}"
+    return f"{label}:{obj.pk}:{live.object_log(label, obj.pk)}"

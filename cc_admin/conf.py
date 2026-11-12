@@ -3,6 +3,7 @@
 ###############
 
 import inspect
+import re
 from functools import lru_cache
 
 from django.conf import settings
@@ -10,6 +11,8 @@ from django.core.signals import setting_changed
 from django.templatetags.static import static
 from django.urls import NoReverseMatch, reverse
 from django.utils.module_loading import import_string
+
+DOTTED = re.compile(r"^[A-Za-z_]\w*(\.[A-Za-z_]\w*){2,}$")
 
 DEFAULTS = {
     "SITE_TITLE": None,
@@ -23,6 +26,7 @@ DEFAULTS = {
     "SITE_DROPDOWN": [],
     "THEME": "aurora",
     "THEMES": None,
+    "THEME_ORDER": None,
     "THEME_SWITCHER": True,
     "LAYOUT": None,
     "COLOR_SCHEME": "auto",
@@ -42,6 +46,10 @@ DEFAULTS = {
     "COMMAND_PALETTE": {},
     "SHORTCUTS": {},
     "ACTIVITY": {},
+    "LIVE": {},
+    "NOTIFICATIONS": {},
+    "PUSH": {},
+    "ANNOUNCEMENTS": [],
     "LOGIN": {},
     "USER_LINKS": [],
     "FOOTER": None,
@@ -87,6 +95,52 @@ ACTIVITY_DEFAULTS = {
     "weeks": 53,
     "exclude": [],
     "menu": True,
+}
+
+LIVE_DEFAULTS = {
+    "enabled": True,
+    "transport": "poll",
+    "url": "/ws/cc-admin/",
+    "interval": 5,
+    "hidden_interval": 30,
+    "stream_seconds": 25,
+    "lists": "auto",
+    "forms": True,
+    "presence": True,
+    "dashboard": True,
+    "dashboard_interval": 30,
+    "badges": True,
+    "highlight": True,
+}
+
+NOTIFICATION_DEFAULTS = {
+    "enabled": True,
+    "bell": True,
+    "popup": True,
+    "position": "bottom-right",
+    "duration": 7,
+    "max": 4,
+    "sound": "chime",
+    "sounds": {"success": "chime", "info": "pop", "warning": "bell", "danger": "alert", "accent": "sparkle", "neutral": "blip"},
+    "volume": 0.6,
+    "desktop": True,
+    "desktop_when": "hidden",
+    "user_settings": True,
+    "broadcast": "superuser",
+    "keep_days": 60,
+    "admin": True,
+    "rules": [],
+}
+
+PUSH_DEFAULTS = {
+    "enabled": False,
+    "vapid_public_key": "",
+    "vapid_private_key": "",
+    "vapid_claims": {},
+    "icon": None,
+    "badge": None,
+    "ttl": 3600,
+    "levels": None,
 }
 
 APPEARANCE_DEFAULTS = {
@@ -141,6 +195,12 @@ def config():
         appearance = {key: bool(appearance) for key in ("accent", "font", "font_size", "radius")}
     data["APPEARANCE"] = {**APPEARANCE_DEFAULTS, **appearance}
     data["FORMS"] = {**FORMS_DEFAULTS, **(data["FORMS"] or {})}
+    for key, defaults in (("LIVE", LIVE_DEFAULTS), ("NOTIFICATIONS", NOTIFICATION_DEFAULTS), ("PUSH", PUSH_DEFAULTS)):
+        value = data[key]
+        if isinstance(value, bool) or value is None:
+            value = {"enabled": bool(value)}
+        data[key] = {**defaults, **value}
+    data["NOTIFICATIONS"]["sounds"] = {**NOTIFICATION_DEFAULTS["sounds"], **(data["NOTIFICATIONS"].get("sounds") or {})}
     return data
 
 

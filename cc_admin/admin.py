@@ -465,3 +465,67 @@ class StackedInline(InlineMixin, admin.StackedInline):
 
 
 __all__ = ["ModelAdmin", "ModelAdminMixin", "StackedInline", "TabularInline", "InlineMixin"]
+
+
+def _register_models():
+    from django.urls import reverse as url_for
+    from django.utils.translation import gettext_lazy as _
+
+    from .decorators import display
+    from .models import Notification, PushSubscription
+
+    if not conf.get("NOTIFICATIONS").get("admin") or admin.site.is_registered(Notification):
+        return
+
+    class NotificationAdmin(ModelAdmin):
+        list_display = ["title", "recipient", "level_badge", "created_at", "is_unread"]
+        list_filter = ["level", ("read_at", admin.EmptyFieldListFilter), "created_at"]
+        search_fields = ["title", "body", "recipient__username", "recipient__email"]
+        list_select_related = ["recipient", "actor"]
+        raw_id_fields = ["recipient", "actor"]
+        readonly_fields = ["created_at"]
+        actions = ["mark_read", "mark_unread"]
+        date_hierarchy = "created_at"
+
+        @display(description=_("Level"), label={"info": "info", "success": "success", "warning": "warning", "danger": "danger", "accent": "accent", "neutral": "neutral"}, ordering="level")
+        def level_badge(self, obj):
+            return obj.level, obj.get_level_display()
+
+        @display(description=_("Unread"), boolean=True, ordering="read_at")
+        def is_unread(self, obj):
+            return obj.read_at is None
+
+        @admin.action(description=_("Mark as read"))
+        def mark_read(self, request, queryset):
+            from django.utils import timezone
+
+            queryset.update(read_at=timezone.now())
+
+        @admin.action(description=_("Mark as unread"))
+        def mark_unread(self, request, queryset):
+            queryset.update(read_at=None)
+
+        def changelist_view(self, request, extra_context=None):
+            extra = {"cc_send_url": url_for(f"{self.admin_site.name}:cc_notifications_send")}
+            extra.update(extra_context or {})
+            return super().changelist_view(request, extra)
+
+    class PushSubscriptionAdmin(ModelAdmin):
+        list_display = ["user", "browser", "created_at", "last_used_at"]
+        search_fields = ["user__username", "user_agent"]
+        list_select_related = ["user"]
+        readonly_fields = ["user", "endpoint", "p256dh", "auth", "user_agent", "created_at", "last_used_at"]
+        exclude = ["endpoint_hash"]
+
+        @display(description=_("Browser"))
+        def browser(self, obj):
+            return str(obj)
+
+        def has_add_permission(self, request):
+            return False
+
+    admin.site.register(Notification, NotificationAdmin)
+    admin.site.register(PushSubscription, PushSubscriptionAdmin)
+
+
+_register_models()

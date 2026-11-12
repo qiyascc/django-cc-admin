@@ -42,7 +42,7 @@
         <ul>
           {% for item in group.items %}
             <li>
-              <a class="cc-nav-item{% if item.active %} is-active{% endif %}" href="{{ item.url }}"{% if item.external %} target="_blank" rel="noopener"{% endif %} data-nav-item{% if item.model %} data-key="{{ item.model }}"{% endif %} title="{{ item.title }}">{% icon item.icon %}<span>{{ item.title }}</span>{% if item.badge %}<em class="cc-badge cc-tone-{{ item.badge_variant|default:'accent' }}">{{ item.badge }}</em>{% endif %}</a>
+              <a class="cc-nav-item{% if item.active %} is-active{% endif %}" href="{{ item.url }}"{% if item.external %} target="_blank" rel="noopener"{% endif %} data-nav-item{% if item.model %} data-key="{{ item.model }}"{% endif %} title="{{ item.title }}">{% icon item.icon %}<span>{{ item.title }}</span>{% if item.badge_key %}<em class="cc-badge cc-tone-{{ item.badge_variant|default:'accent' }}" data-badge-key="{{ item.badge_key }}"{% if not item.badge %} hidden{% endif %}>{{ item.badge|default:'' }}</em>{% elif item.badge %}<em class="cc-badge cc-tone-{{ item.badge_variant|default:'accent' }}">{{ item.badge }}</em>{% endif %}</a>
               {% if item.add_url %}<a class="cc-nav-add" href="{{ item.add_url }}" title="{% blocktranslate with name=item.title %}Add {{ name }}{% endblocktranslate %}" tabindex="-1">{% icon "plus" %}</a>{% endif %}
             </li>
           {% endfor %}

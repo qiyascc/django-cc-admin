@@ -1,0 +1,20 @@
+{% load i18n cc_admin %}{% for a in cc.announcements %}{% if a.style == "modal" %}
+<dialog class="cc-dialog cc-announce" data-announce="{{ a.id }}" data-announce-style="modal" aria-labelledby="cc-announce-{{ a.id }}">
+  {% if a.image %}<img src="{{ a.image }}" alt="" class="cc-announce-image">{% endif %}
+  <div class="cc-announce-body">
+    <span class="cc-announce-icon cc-tone-{{ a.tone }}">{% icon a.icon %}</span>
+    <h2 id="cc-announce-{{ a.id }}">{{ a.title }}</h2>
+    {% if a.text %}<p>{{ a.text }}</p>{% endif %}
+    <div class="cc-announce-buttons">
+      {% if a.link %}{% if a.dismissible %}<button type="button" class="cc-btn" data-announce-close>{% translate 'Close' %}</button>{% endif %}{% else %}<button type="button" class="cc-btn cc-btn-primary" data-announce-close>{% firstof a.link_text _("Got it") %}</button>{% endif %}
+      {% if a.link %}<a href="{{ a.link }}" class="cc-btn cc-btn-primary" data-announce-close>{% firstof a.link_text _("Take a look") %}{% icon "arrow-right" %}</a>{% endif %}
+    </div>
+  </div>
+</dialog>
+{% else %}
+<div class="cc-announce-bar cc-tone-{{ a.tone }}" data-announce="{{ a.id }}" data-announce-style="banner" hidden>
+  {% icon a.icon %}<p><b>{{ a.title }}</b>{% if a.text %} {{ a.text }}{% endif %}</p>
+  {% if a.link %}<a href="{{ a.link }}">{% firstof a.link_text _("Take a look") %}</a>{% endif %}
+  {% if a.dismissible %}<button type="button" class="cc-icon-btn" data-announce-close aria-label="{% translate 'Dismiss' %}">{% icon "x" %}</button>{% endif %}
+</div>
+{% endif %}{% endfor %}

@@ -71,6 +71,30 @@ CC_ADMIN = {
         {"title": "Status page", "icon": "activity", "link": "#"},
     ],
     "THEME": os.environ.get("CC_THEME", "aurora"),
+    "THEMES": {
+        "northwind": {"extends": "aurora", "label": "Northwind", "note": "Store colours on Aurora", "colors": {"accent": "#0e8a8a", "sidebar": "#f2f7f7"}, "fonts": {"body": "Manrope"}, "swatch": ["#f6fafa", "#ffffff", "#0e8a8a", "#13262b"]},
+        "nord": {"fonts": {"body": "IBM Plex Sans"}, "radius": "soft"},
+        "midnight": {"colors": {"accent": "#38bdf8"}},
+    },
+    "LIVE": {"transport": os.environ.get("CC_LIVE", "poll"), "interval": 4},
+    "NOTIFICATIONS": {
+        "position": "bottom-right",
+        "rules": [
+            {"model": "shop.order", "on": "created", "title": "New order {obj.number}", "body": "{obj.customer} · ${obj.total}", "level": "success", "icon": "receipt", "sound": "cash"},
+            {"model": "shop.order", "on": "updated", "when": "shop.notifications.refunded", "title": "{obj.number} was refunded", "body": "{obj.customer} · ${obj.total}", "level": "danger", "icon": "undo-2", "to": "superuser"},
+            {"model": "shop.product", "on": "updated", "when": "shop.notifications.low_stock", "title": "{obj.name} is running out", "body": "Only {obj.stock} left in stock.", "level": "warning", "icon": "package"},
+        ],
+    },
+    "PUSH": {
+        "enabled": bool(os.environ.get("CC_VAPID_PRIVATE")),
+        "vapid_public_key": os.environ.get("CC_VAPID_PUBLIC", ""),
+        "vapid_private_key": os.environ.get("CC_VAPID_PRIVATE", ""),
+        "vapid_claims": {"sub": "mailto:admin@example.com"},
+    },
+    "ANNOUNCEMENTS": [
+        {"id": "live-2026", "style": "modal", "tone": "accent", "icon": "radio", "title": "The admin is live now", "text": "Lists, the dashboard and badges update on their own. New orders pop up with a sound. Open the bell to pick how you want to be told.", "link_text": "Got it"},
+        {"id": "stocktake", "style": "banner", "tone": "warning", "title": "Stocktake on Friday.", "text": "Product edits are locked from 18:00.", "end": "2030-01-01"},
+    ],
     "ENVIRONMENT": ("Staging", "warning"),
     "ENVIRONMENT_TITLE_PREFIX": True,
     "FORMS": {"switches": True},
@@ -140,3 +164,8 @@ CC_ADMIN = {
     "LOGIN": {"title": "Run the whole store from one place.", "text": "Orders, stock and customers, with the numbers that matter on the first screen."},
     "USER_LINKS": [{"title": "Store front", "icon": "store", "link": "/"}],
 }
+
+ASGI_APPLICATION = "project.asgi.application"
+CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.filebased.FileBasedCache", "LOCATION": BASE_DIR / ".cache"}}

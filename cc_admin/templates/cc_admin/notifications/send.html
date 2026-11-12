@@ -1,0 +1,34 @@
+{% extends "admin/base_site.html" %}
+{% load i18n cc_admin %}
+
+{% block breadcrumbs %}<ol class="breadcrumbs"><li><a href="{% url 'admin:index' %}">{% translate 'Home' %}</a></li><li><a href="{% url 'admin:cc_notifications' %}">{% translate 'Notifications' %}</a></li><li aria-current="page">{% translate 'Send' %}</li></ol>{% endblock %}
+{% block content_title %}<h1>{% translate 'Send a notification' %}</h1><p class="cc-lead">{% translate 'It shows up right away for everyone you pick, with a popup and a sound.' %}</p>{% endblock %}
+
+{% block content %}
+<div id="content-main" class="cc-send">
+  <form method="post" class="cc-form" novalidate>{% csrf_token %}
+    <fieldset class="module aligned cc-fieldset">
+      <div class="cc-fields">
+        {% for field in form %}
+          <div class="form-row cc-row{% if field.errors %} errors{% endif %}">
+            <div class="cc-field{% if field.field.widget.input_type == 'checkbox' %} cc-field-check{% endif %}">
+              {% if field.field.widget.input_type == "checkbox" %}
+                <div class="checkbox cc-check-line">{{ field }}<label for="{{ field.id_for_label }}" class="vCheckboxLabel">{{ field.label }}</label></div>
+              {% else %}
+                <label for="{{ field.id_for_label }}"{% if field.field.required %} class="required"{% endif %}>{{ field.label }}</label>
+                {% if field.name == "sound" %}<div class="cc-ns-line">{{ field }}<button type="button" class="cc-icon-btn" data-sound-preview aria-label="{% translate 'Play' %}">{% icon "play" %}</button></div>{% else %}{{ field }}{% endif %}
+              {% endif %}
+              {{ field.errors }}
+              {% if field.help_text %}<div class="help cc-help">{{ field.help_text }}</div>{% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <div class="submit-row cc-submit">
+      <div class="cc-submit-left"><a href="{% url 'admin:cc_notifications' %}" class="cc-btn cc-btn-ghost">{% translate 'Cancel' %}</a></div>
+      <div class="cc-submit-right"><button type="submit" class="cc-btn cc-btn-primary">{% icon "send" %}<span>{% translate 'Send now' %}</span></button></div>
+    </div>
+  </form>
+</div>
+{% endblock %}

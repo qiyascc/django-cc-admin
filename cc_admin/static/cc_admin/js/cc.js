@@ -406,12 +406,13 @@
     recent = [entry].concat(recent.filter(function (r) { return r.url !== entry.url; })).slice(0, 12);
     store.set("recent", recent);
   }
-  $$("[data-recent-list]").forEach(function (list) {
+  function renderRecent(ctx) { $$("[data-recent-list]", ctx).forEach(function (list) {
     if (!recent.length) { list.innerHTML = '<li class="cc-muted cc-list-empty">' + esc(list.dataset.empty) + "</li>"; return; }
     list.innerHTML = recent.slice(0, 7).map(function (r) {
       return '<li><a class="cc-list-row" href="' + esc(r.url) + '"><span class="cc-list-icon">' + icon("rotate-ccw-clock") + '</span><span class="cc-list-text"><b>' + esc(r.title) + "</b><small>" + esc(r.model) + '</small></span><span class="cc-list-meta">' + ago(r.at) + "</span></a></li>";
     }).join("");
-  });
+  }); }
+  renderRecent();
   function ago(t) {
     var s = Math.max(1, Math.round((Date.now() - t) / 1000));
     if (s < 60) return "just now";
@@ -618,13 +619,14 @@
     if (newTab) window.open(a.href, "_blank"); else location.href = a.href;
   }
 
+  var applyCols = function () {};
   if (changelist) {
     var key = "cols:" + changelist.dataset.model;
     var hiddenCols = store.get(key, []);
     var menu = $("[data-columns-menu]");
     var holder = $("[data-columns-list]");
     var headers = results ? $$("thead th", results) : [];
-    function applyCols() {
+    applyCols = function () {
       headers.forEach(function (th, i) {
         var hide = hiddenCols.indexOf(i) >= 0;
         th.classList.toggle("cc-col-hidden", hide);
@@ -759,12 +761,14 @@
     tr.classList.toggle("is-expanded", open);
   });
 
+  var wireSort = function () {};
   if (changelist && changelist.dataset.sortUrl && results) {
     var body = $("tbody", results);
     var dragRow = null;
-    $$("tr[data-row]", body).forEach(function (tr) {
+    wireSort = function () { $$("tr[data-row]", body).forEach(function (tr) {
       var handle = $("[data-row-drag]", tr);
-      if (!handle) return;
+      if (!handle || tr.dataset.ccSort) return;
+      tr.dataset.ccSort = "1";
       on(handle, "mousedown", function () { tr.draggable = true; });
       on(handle, "touchstart", function () { tr.draggable = true; }, { passive: true });
       on(tr, "dragstart", function (e) { dragRow = tr; tr.classList.add("is-dragging"); e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", ""); } catch (x) {} });
@@ -790,7 +794,8 @@
           .then(function (r) { toast(r.ok ? "Order saved" : "Could not save the order", r.ok ? "success" : "error"); })
           .catch(function () { toast("Could not save the order", "error"); });
       });
-    });
+    }); };
+    wireSort();
   }
 
   on(document, "change", function (e) {
@@ -1099,7 +1104,8 @@
     on(group.closest("form"), "submit", renumber);
   }
 
-  $$(".cc-chart-line[data-chart]").forEach(function (chart) {
+  function initCharts(ctx) {
+  $$(".cc-chart-line[data-chart]", ctx).forEach(function (chart) {
     var data;
     try { data = JSON.parse(chart.dataset.chart); } catch (e) { return; }
     var plot = $(".cc-chart-plot", chart);
@@ -1144,7 +1150,7 @@
     });
     on(plot, "mouseleave", function () { tip.hidden = true; cursorLine.style.opacity = 0; dots.forEach(function (d) { d.hidden = true; }); });
   });
-  $$(".cc-chart-bar[data-chart]").forEach(function (chart) {
+  $$(".cc-chart-bar[data-chart]", ctx).forEach(function (chart) {
     var data;
     try { data = JSON.parse(chart.dataset.chart); } catch (e) { return; }
     var plot = $(".cc-chart-plot", chart);
@@ -1167,7 +1173,7 @@
       on(bar, "mouseleave", function () { tip.hidden = true; });
     });
   });
-  $$(".cc-donut").forEach(function (d) {
+  $$(".cc-donut", ctx).forEach(function (d) {
     var center = $(".cc-donut-center", d);
     if (!center) return;
     var orig = center.innerHTML;
@@ -1179,6 +1185,8 @@
       on(c, "mouseleave", function () { center.innerHTML = orig; $$("circle[data-label]", d).forEach(function (o) { o.style.opacity = ""; }); });
     });
   });
+  }
+  initCharts();
 
   on(document, "keydown", function (e) {
     if (e.key !== "Escape" || recording) return;
@@ -1405,6 +1413,512 @@
   }
   tidyLegacyCollapse();
   on(window, "load", tidyLegacyCollapse);
+
+  var audio = null;
+  function audioCtx() {
+    var A = window.AudioContext || window.webkitAudioContext;
+    if (!A) return null;
+    if (!audio) { try { audio = new A(); } catch (e) { return null; } }
+    if (audio.state === "suspended") audio.resume();
+    return audio;
+  }
+  ["pointerdown", "keydown"].forEach(function (t) { document.addEventListener(t, function () { audioCtx(); }, { once: true, capture: true }); });
+  var SOUNDS = {
+    chime: [[880, 0, 0.35, "sine", 0.5], [1318.5, 0.09, 0.55, "sine", 0.35]],
+    pop: [[420, 0, 0.1, "sine", 0.7, 920]],
+    ping: [[1760, 0, 0.3, "triangle", 0.35]],
+    bell: [[660, 0, 1.1, "sine", 0.45], [1320, 0, 0.7, "sine", 0.16], [1980, 0, 0.45, "sine", 0.07]],
+    alert: [[880, 0, 0.13, "square", 0.16], [660, 0.16, 0.13, "square", 0.16], [880, 0.32, 0.2, "square", 0.16]],
+    sparkle: [[1046.5, 0, 0.18, "sine", 0.3], [1318.5, 0.07, 0.18, "sine", 0.3], [1568, 0.14, 0.18, "sine", 0.3], [2093, 0.21, 0.35, "sine", 0.25]],
+    blip: [[1200, 0, 0.06, "square", 0.1]],
+    cash: [[1567, 0, 0.09, "triangle", 0.35], [2093, 0.09, 0.4, "triangle", 0.3]],
+    knock: [[200, 0, 0.08, "sine", 0.9, 90], [200, 0.15, 0.08, "sine", 0.9, 90]]
+  };
+  function play(name, volume) {
+    var spec = SOUNDS[name];
+    var c = spec && audioCtx();
+    if (!c || !(volume > 0)) return;
+    var t0 = c.currentTime + 0.02;
+    var master = c.createGain();
+    master.gain.value = Math.min(1, volume);
+    master.connect(c.destination);
+    spec.forEach(function (n) {
+      var o = c.createOscillator(), g = c.createGain(), at = t0 + n[1];
+      o.type = n[3];
+      o.frequency.setValueAtTime(n[0], at);
+      if (n[5]) o.frequency.exponentialRampToValueAtTime(n[5], at + n[2]);
+      g.gain.setValueAtTime(0.0001, at);
+      g.gain.exponentialRampToValueAtTime(n[4], at + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + n[2]);
+      o.connect(g);
+      g.connect(master);
+      o.start(at);
+      o.stop(at + n[2] + 0.05);
+    });
+  }
+
+  var N = config.notify || {}, P = config.push || {}, L = config.live || {};
+  var ns = {};
+  (function () {
+    var saved = store.get("notify", {}) || {};
+    ns = { popup: true, sound: N.sound !== "none", tone: "", volume: typeof N.volume === "number" ? N.volume : 0.6, desktop: false, dnd: 0, live: true };
+    Object.keys(saved).forEach(function (k) { ns[k] = saved[k]; });
+  })();
+  function saveNs() { store.set("notify", ns); }
+  function quiet() { return ns.dnd && Date.now() < ns.dnd; }
+  function post(url, body, json) {
+    var headers = { "X-CSRFToken": csrf(), "X-Requested-With": "XMLHttpRequest" };
+    if (json) headers["Content-Type"] = "application/json";
+    return fetch(url, { method: "POST", credentials: "same-origin", headers: headers, body: json ? JSON.stringify(body) : body });
+  }
+  function ensureIcon(name, svg) {
+    if (!name || !svg || document.getElementById("cc-i-" + name)) return;
+    var sprite = $("svg.cc-sprite");
+    if (sprite) sprite.insertAdjacentHTML("beforeend", svg);
+  }
+  function since(at) { var t = Date.parse(at); return isNaN(t) ? "" : ago(t); }
+
+  var bell = $("[data-bell]");
+  var bellCount = $("[data-bell-count]");
+  var baseTitle = document.title;
+  function setUnread(n) {
+    if (bellCount) { bellCount.hidden = !n; bellCount.textContent = n > 99 ? "99+" : n; }
+    if (bell) bell.classList.toggle("has-unread", n > 0);
+    document.title = (n ? "(" + (n > 99 ? "99+" : n) + ") " : "") + baseTitle;
+  }
+  setUnread(N.unread || 0);
+  var bellFilter = "all", bellLoaded = false;
+  function noteHtml(n) {
+    return '<a class="cc-ntf' + (n.read ? "" : " is-unread") + '" href="' + esc(n.link || "#") + '" data-note="' + n.id + '"><span class="cc-ntf-icon cc-tone-' + esc(n.level) + '">' + icon(n.icon) + '</span><span class="cc-ntf-text"><b>' + esc(n.title) + "</b>" + (n.body ? "<small>" + esc(n.body) + "</small>" : "") + "<time>" + esc((n.actor ? n.actor + " · " : "") + since(n.at)) + '</time></span><i class="cc-ntf-dot"></i></a>';
+  }
+  function renderBell(items) {
+    var list = $("[data-bell-list]");
+    if (!list) return;
+    items.forEach(function (n) { ensureIcon(n.icon, n.svg); });
+    list.innerHTML = items.length ? items.map(noteHtml).join("") : '<div class="cc-bell-empty">' + icon("bell") + "<span>" + (bellFilter === "unread" ? "Nothing unread. Nice." : "No notifications yet.") + "</span></div>";
+  }
+  function loadBell() {
+    if (!N.list) return;
+    fetch(N.list + "?format=json" + (bellFilter === "unread" ? "&filter=unread" : ""), { credentials: "same-origin" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { bellLoaded = true; renderBell(d.items || []); setUnread(d.unread || 0); })
+      .catch(function () {});
+  }
+  function markRead(ids) {
+    if (!N.read) return;
+    var body = new URLSearchParams();
+    (ids || []).forEach(function (id) { body.append("id", id); });
+    post(N.read, body).then(function (r) { return r.json(); }).then(function (d) { setUnread(d.unread || 0); }).catch(function () {});
+    $$(ids ? ids.map(function (id) { return '[data-note="' + id + '"]'; }).join(",") : "[data-note]").forEach(function (el) { el.classList.remove("is-unread"); });
+  }
+  on(document, "click", function (e) {
+    if (e.target.closest("[data-bell] [data-menu-toggle]")) { setTimeout(function () { if (bell && bell.classList.contains("is-open")) loadBell(); }, 0); return; }
+    var f = e.target.closest("[data-bell-filter] [data-value]");
+    if (f) { bellFilter = f.dataset.value; $$("[data-bell-filter] [data-value]").forEach(function (b) { b.classList.toggle("is-on", b === f); }); loadBell(); return; }
+    if (e.target.closest("[data-bell-readall]")) { markRead(null); return; }
+    var note = e.target.closest("[data-note]");
+    if (note) {
+      if (note.classList.contains("is-unread")) markRead([note.dataset.note]);
+      if (note.getAttribute("href") === "#") e.preventDefault();
+    }
+  });
+
+  var pops = $("[data-pops]");
+  var LEVEL_SOUND = N.sounds || {};
+  function dropPop(el) {
+    if (!el || el.classList.contains("is-out")) return;
+    el.classList.add("is-out");
+    setTimeout(function () { el.remove(); }, 280);
+  }
+  function popup(n) {
+    if (!pops) return;
+    var dur = +N.duration || 0;
+    var el = document.createElement("div");
+    el.className = "cc-pop cc-tone-" + (n.level || "info");
+    el.setAttribute("role", "status");
+    el.innerHTML = '<span class="cc-pop-icon">' + icon(n.icon) + '</span><div class="cc-pop-text"><b>' + esc(n.title) + "</b>" + (n.body ? "<p>" + esc(n.body) + "</p>" : "") + "<small>" + esc((n.actor ? n.actor + " · " : "") + "just now") + "</small>" + (n.link ? '<span class="cc-pop-actions"><a href="' + esc(n.link) + '" data-pop-open>Open</a><button type="button" data-pop-read>Mark read</button></span>' : '<span class="cc-pop-actions"><button type="button" data-pop-read>Mark read</button></span>') + '</div><button type="button" class="cc-icon-btn cc-pop-close" data-pop-close aria-label="Close">' + icon("x") + "</button>" + (dur ? '<i class="cc-pop-timer" style="animation-duration:' + dur + 's"></i>' : "");
+    var top = /^top/.test(pops.dataset.position || "");
+    if (top) pops.insertBefore(el, pops.firstChild); else pops.appendChild(el);
+    var all = $$(".cc-pop:not(.is-out)", pops);
+    var max = N.max || 4;
+    while (all.length > max) dropPop(top ? all.pop() : all.shift());
+    requestAnimationFrame(function () { el.classList.add("is-in"); });
+    var left = dur * 1000, started = Date.now(), timer = dur ? setTimeout(function () { dropPop(el); }, left) : null;
+    on(el, "mouseenter", function () { if (!timer) return; clearTimeout(timer); timer = null; left -= Date.now() - started; el.classList.add("is-paused"); });
+    on(el, "mouseleave", function () { if (!dur || timer || el.classList.contains("is-out")) return; started = Date.now(); el.classList.remove("is-paused"); timer = setTimeout(function () { dropPop(el); }, Math.max(800, left)); });
+    on(el, "click", function (e) {
+      if (e.target.closest("[data-pop-close]")) { dropPop(el); return; }
+      if (e.target.closest("[data-pop-read]")) { markRead([n.id]); dropPop(el); return; }
+      if (e.target.closest("[data-pop-open]")) { markRead([n.id]); return; }
+      if (n.link && !e.target.closest("a, button")) { markRead([n.id]); location.href = n.link; }
+    });
+  }
+  var pushOn = false;
+  function desktop(n) {
+    if (!ns.desktop || !N.desktop || pushOn || !("Notification" in window) || Notification.permission !== "granted") return;
+    if (N.desktopWhen !== "always" && !document.hidden) return;
+    try {
+      var d = new Notification(n.title, { body: n.body || "", tag: "cc-" + n.id, icon: P.icon || undefined });
+      d.onclick = function () { window.focus(); if (n.link) location.href = n.link; markRead([n.id]); d.close(); };
+    } catch (e) {}
+  }
+  var seen = {};
+  function receive(list) {
+    var heard = store.get("heard", 0) || 0;
+    var loudest = null;
+    list.forEach(function (n) {
+      if (seen[n.id]) return;
+      seen[n.id] = 1;
+      ensureIcon(n.icon, n.svg);
+      var listEl = $("[data-bell-list]");
+      if (bellLoaded && listEl && bellFilter !== "read") {
+        var empty = $(".cc-bell-empty", listEl);
+        if (empty) empty.remove();
+        listEl.insertAdjacentHTML("afterbegin", noteHtml(n));
+      }
+      if (bell) { bell.classList.remove("is-ringing"); void bell.offsetWidth; bell.classList.add("is-ringing"); }
+      var fresh = n.id > heard;
+      if (fresh) { heard = n.id; store.set("heard", n.id); }
+      if (quiet()) return;
+      if (ns.popup && N.popup && !document.hidden) popup(n);
+      if (fresh) { desktop(n); loudest = loudest || n; }
+    });
+    if (loudest && ns.sound && !quiet()) play(ns.tone || loudest.sound || LEVEL_SOUND[loudest.level] || N.sound, ns.volume);
+  }
+
+  $$("[data-announce]").forEach(function (a) {
+    if (store.get("ann:" + a.dataset.announce, 0)) { a.remove(); return; }
+    if (a.dataset.announceStyle === "modal") setTimeout(function () { if (!anyDialogOpen()) a.showModal(); }, 500);
+    else a.hidden = false;
+  });
+  on(document, "click", function (e) {
+    var c = e.target.closest("[data-announce-close]");
+    if (!c) return;
+    var a = c.closest("[data-announce]");
+    store.set("ann:" + a.dataset.announce, 1);
+    if (a.tagName === "DIALOG") a.close(); else a.remove();
+  });
+
+  var liveOn = !!(L.enabled && ns.live !== false);
+  var liveDot = $("[data-live-dot]");
+  function liveState(state) {
+    if (liveDot) { liveDot.dataset.state = state; liveDot.title = state === "on" ? "Live updates on" : state === "paused" ? "Live updates paused" : "Reconnecting…"; }
+    var t = $("[data-live-state]");
+    if (t) t.textContent = state === "on" ? "Connected. Lists, dashboards and badges refresh on their own." : state === "paused" ? "Paused in this browser." : "Trying to reconnect…";
+  }
+  var noteSince = N.since || 0;
+  var versions = {};
+  $$("[data-live-model]").forEach(function (el) { versions[el.dataset.liveModel] = el.dataset.liveVersion || ""; });
+  var dashEl = $("[data-live-dashboard]");
+  if (dashEl) versions["*"] = dashEl.dataset.liveVersion || "";
+  var objEl = $("[data-live-object]");
+  var objKey = objEl ? objEl.dataset.liveObject : "";
+  var needBadges = false, badgesAt = Date.now();
+  function liveParams(badges) {
+    var p = { since: noteSince, mode: dirty ? "editing" : "viewing" };
+    var m = Object.keys(versions).map(function (k) { return k + "=" + versions[k]; }).join(",");
+    if (m) p.models = m;
+    if (objKey) p.object = objKey;
+    if (badges) p.badges = "1";
+    return p;
+  }
+  function qs(p) { return Object.keys(p).map(function (k) { return encodeURIComponent(k) + "=" + encodeURIComponent(p[k]); }).join("&"); }
+  function applyBadges(map) {
+    Object.keys(map).forEach(function (key) {
+      $$('[data-badge-key="' + key.replace(/"/g, '\\"') + '"]').forEach(function (b) {
+        var v = map[key];
+        if (b.textContent !== v && v) { b.classList.remove("is-bumped"); void b.offsetWidth; b.classList.add("is-bumped"); }
+        b.textContent = v;
+        b.hidden = !v || v === "0";
+      });
+    });
+  }
+  function showPresence(list) {
+    var box = $("[data-presence]");
+    if (!box) return;
+    box.hidden = !list.length;
+    box.innerHTML = list.map(function (p) {
+      return '<span class="cc-presence-who' + (p.mode === "editing" ? " is-editing" : "") + '" title="' + esc(p.name + (p.mode === "editing" ? " is editing" : " is viewing")) + '"><span class="cc-avatar" data-seed="' + esc(p.username) + '">' + esc(initials(p.name)) + "</span></span>";
+    }).join("") + (list.length ? "<small>" + esc(list.length === 1 ? list[0].name.split(" ")[0] + (list[0].mode === "editing" ? " is editing this too" : " is looking at this too") : list.length + " others are here") + "</small>" : "");
+    paintAvatars(box);
+  }
+  function initials(name) { return String(name || "?").split(/\s+/).slice(0, 2).map(function (w) { return w.charAt(0); }).join("").toUpperCase(); }
+  function objectChanged(info) {
+    var parts = objKey.split(":");
+    parts[2] = info.log;
+    objKey = parts.join(":");
+    var old = $("[data-live-note]");
+    if (old) old.remove();
+    var note = document.createElement("div");
+    note.className = "cc-live-note cc-tone-" + (info.deleted ? "danger" : "warning");
+    note.setAttribute("data-live-note", "");
+    note.innerHTML = icon(info.deleted ? "trash" : "refresh-cw") + "<p><b>" + esc(info.who || "Someone") + "</b> " + (info.deleted ? "deleted this record" : "saved this record") + " " + esc(info.ago) + "." + (info.message ? " <span>" + esc(info.message) + "</span>" : "") + "</p>" + (info.deleted ? "" : '<a href="' + esc(location.href) + '" class="cc-btn cc-btn-sm">Reload</a>') + '<button type="button" class="cc-icon-btn" aria-label="Dismiss">' + icon("x") + "</button>";
+    on($("button", note), "click", function () { note.remove(); });
+    var host = $(".cc-pagehead") || $("#content");
+    host.parentNode.insertBefore(note, host.nextSibling);
+    if (!quiet() && ns.sound) play("knock", ns.volume * 0.8);
+  }
+
+  var listTimer = null;
+  function rowKey(tr) {
+    var cb = $("input.action-select", tr);
+    if (cb) return "pk:" + cb.value;
+    var a = $("th a, td a", tr);
+    return a ? a.getAttribute("href") : tr.textContent.trim().slice(0, 80);
+  }
+  function listBusy() {
+    return $$("input.action-select:checked").length || $("#action-toggle:checked") || $("[data-menu].is-open") || anyDialogOpen() || $("tr.is-dragging") || $("#result_list input:not([type=checkbox]), #result_list select, #result_list textarea") || $("tr.is-expanded");
+  }
+  function listBanner() {
+    if (!changelist || $("[data-live-bar]")) return;
+    var bar = document.createElement("div");
+    bar.className = "cc-live-bar";
+    bar.setAttribute("data-live-bar", "");
+    bar.innerHTML = '<span class="cc-live-pulse"></span><span>This list has new changes.</span><button type="button" class="cc-btn cc-btn-sm cc-btn-primary">Show</button>';
+    on($("button", bar), "click", function () { bar.remove(); swapList(true); });
+    var tools = $(".cc-list-toolbar", changelist);
+    changelist.insertBefore(bar, tools ? tools.nextSibling : changelist.firstChild);
+  }
+  function swapList(force) {
+    if (!changelist) return;
+    if (!force && (L.lists === "banner" || listBusy())) { listBanner(); return; }
+    fetch(location.href, { credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        var doc = new DOMParser().parseFromString(html, "text/html");
+        var freshBody = doc.querySelector("#result_list tbody");
+        var oldBody = results && $("tbody", results);
+        if (!freshBody || !oldBody || !$("#result_list thead") || doc.querySelectorAll("#result_list thead th").length !== $$("#result_list thead th").length) { location.reload(); return; }
+        var before = {};
+        $$("tr[data-row]", oldBody).forEach(function (tr) { before[rowKey(tr)] = tr.innerHTML.replace(/\s+/g, " "); });
+        $$("svg use", freshBody).forEach(function (u) { var id = (u.getAttribute("href") || "").slice(1); if (id && !document.getElementById(id)) { var sym = doc.getElementById(id); if (sym) ensureIcon(id.replace("cc-i-", ""), sym.outerHTML); } });
+        oldBody.innerHTML = freshBody.innerHTML;
+        var added = 0, changedRows = 0;
+        $$("tr[data-row]", oldBody).forEach(function (tr) {
+          var k = rowKey(tr);
+          if (!(k in before)) { added++; if (L.highlight) tr.classList.add("is-live-new"); }
+          else if (before[k] !== tr.innerHTML.replace(/\s+/g, " ")) { changedRows++; if (L.highlight) tr.classList.add("is-live-changed"); }
+        });
+        [".cc-lead", ".cc-pager", ".cc-tabs-page", ".cc-chips"].forEach(function (sel) {
+          var a = $(sel), b = doc.querySelector(sel);
+          if (a && b && a.innerHTML !== b.innerHTML) a.innerHTML = b.innerHTML;
+        });
+        applyCols();
+        wireSort();
+        paintAvatars(oldBody);
+        if (window.Actions && $$("tr input.action-select").length) { try { window.Actions(document.querySelectorAll("tr input.action-select")); } catch (e) {} }
+        if (typeof updateActionbar === "function") updateActionbar();
+        var bar = $("[data-live-bar]");
+        if (bar) bar.remove();
+        if (added || changedRows) toast(added ? added + (added === 1 ? " new row" : " new rows") : changedRows + (changedRows === 1 ? " row updated" : " rows updated"));
+      })
+      .catch(function () {});
+  }
+  var dashAt = 0, dashTimer = null;
+  function strip(html) { return html.replace(/cc-g\d+/g, "g").replace(/\s+/g, " "); }
+  function refreshDashboard() {
+    if (!dashEl || !L.dashboard) return;
+    var wait = dashAt + L.dashboardInterval * 1000 - Date.now();
+    if (wait > 0) { clearTimeout(dashTimer); dashTimer = setTimeout(refreshDashboard, wait); return; }
+    dashAt = Date.now();
+    fetch(location.href, { credentials: "same-origin" })
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        var doc = new DOMParser().parseFromString(html, "text/html");
+        var fresh = doc.querySelector("[data-live-dashboard]");
+        if (!fresh) return;
+        var oldKids = Array.prototype.slice.call(dashEl.children), newKids = Array.prototype.slice.call(fresh.children);
+        if (oldKids.length !== newKids.length) { dashEl.innerHTML = fresh.innerHTML; initCharts(dashEl); paintAvatars(dashEl); renderRecent(dashEl); return; }
+        newKids.forEach(function (kid, i) {
+          if (strip(kid.innerHTML) === strip(oldKids[i].innerHTML)) return;
+          var node = document.importNode(kid, true);
+          node.classList.add("is-live-changed");
+          oldKids[i].replaceWith(node);
+          initCharts(node);
+          paintAvatars(node);
+          renderRecent(node);
+        });
+      })
+      .catch(function () {});
+  }
+  function onVersion(label) {
+    if (label === "*") { refreshDashboard(); needBadges = true; return; }
+    needBadges = true;
+    if (changelist && changelist.dataset.liveModel === label) { clearTimeout(listTimer); listTimer = setTimeout(function () { swapList(false); }, 250); }
+  }
+  function handle(data) {
+    if (!data) return;
+    liveState("on");
+    if (data.since) noteSince = Math.max(noteSince, data.since);
+    if (data.notifications && data.notifications.length) receive(data.notifications);
+    if (typeof data.unread === "number") setUnread(data.unread);
+    if (data.versions) Object.keys(data.versions).forEach(function (k) {
+      if (k in versions && versions[k] !== data.versions[k]) { versions[k] = data.versions[k]; onVersion(k); }
+    });
+    if (data.object) objectChanged(data.object);
+    if (data.presence) showPresence(data.presence);
+    if (data.badges) applyBadges(data.badges);
+  }
+  function wantsBadges() {
+    if (!L.badges) return false;
+    if (needBadges || Date.now() - badgesAt > 60000) { needBadges = false; badgesAt = Date.now(); return true; }
+    return false;
+  }
+  var transport = L.transport || "poll", pollTimer = null, failures = 0, source = null, socket = null, beat = null;
+  function every() { return (document.hidden ? L.hidden : L.interval) * 1000; }
+  function poll() {
+    clearTimeout(pollTimer);
+    if (!liveOn || transport !== "poll") return;
+    fetch(L.poll + "?" + qs(liveParams(wantsBadges())), { credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then(function (r) { if (!r.ok || r.redirected) throw new Error(r.status); return r.json(); })
+      .then(function (d) { failures = 0; handle(d); pollTimer = setTimeout(poll, every()); })
+      .catch(function () { failures++; liveState("off"); pollTimer = setTimeout(poll, Math.min(120000, every() * Math.pow(2, Math.min(failures, 5)))); });
+  }
+  function openStream() {
+    if (source) { source.close(); source = null; }
+    if (!liveOn || transport !== "sse" || !window.EventSource) return;
+    source = new EventSource(L.stream + "?" + qs(liveParams(true)));
+    source.onmessage = function (e) { failures = 0; try { handle(JSON.parse(e.data)); } catch (x) {} };
+    source.onerror = function () {
+      if (source) source.close();
+      source = null;
+      failures++;
+      if (failures > 6) { liveState("off"); transport = "poll"; poll(); return; }
+      setTimeout(openStream, failures > 1 ? 1500 * failures : 300);
+    };
+  }
+  function syncSocket(badges) {
+    if (socket && socket.readyState === 1) socket.send(JSON.stringify({ type: "sync", params: liveParams(badges || wantsBadges()) }));
+  }
+  function openSocket() {
+    if (!liveOn || transport !== "websocket" || !window.WebSocket) return;
+    var url = /^wss?:/.test(L.ws) ? L.ws : (location.protocol === "https:" ? "wss://" : "ws://") + location.host + L.ws;
+    try { socket = new WebSocket(url); } catch (e) { transport = "poll"; poll(); return; }
+    socket.onopen = function () { failures = 0; syncSocket(true); clearInterval(beat); beat = setInterval(function () { syncSocket(false); }, L.interval * 1000); };
+    socket.onmessage = function (e) {
+      var m;
+      try { m = JSON.parse(e.data); } catch (x) { return; }
+      if (m.type === "sync") handle(m.data);
+      if (m.type === "poke") syncSocket(false);
+    };
+    socket.onclose = function () {
+      clearInterval(beat);
+      socket = null;
+      if (!liveOn) return;
+      failures++;
+      liveState("off");
+      if (failures > 4) { transport = "poll"; poll(); return; }
+      setTimeout(openSocket, 1000 * failures);
+    };
+  }
+  function startLive() {
+    liveOn = !!(L.enabled && ns.live !== false);
+    if (!L.enabled) return;
+    if (!liveOn) { liveState("paused"); clearTimeout(pollTimer); if (source) source.close(); if (socket) socket.close(); return; }
+    if (transport === "websocket") openSocket();
+    else if (transport === "sse") openStream();
+    else { transport = "poll"; pollTimer = setTimeout(poll, 400); }
+  }
+  on(document, "visibilitychange", function () {
+    if (document.hidden || !liveOn) return;
+    if (transport === "poll") poll();
+    else if (transport === "websocket") syncSocket(true);
+  });
+  var wasDirty = false;
+  setInterval(function () {
+    if (dirty === wasDirty) return;
+    wasDirty = dirty;
+    if (transport === "sse") openStream();
+    else if (transport === "websocket") syncSocket(false);
+  }, 1000);
+  startLive();
+
+  var nsDlg = $("[data-notify-settings]");
+  function nsSync() {
+    if (!nsDlg) return;
+    $$("[data-ns]", nsDlg).forEach(function (el) {
+      var k = el.dataset.ns;
+      if (el.type === "checkbox") el.checked = !!ns[k];
+      else el.value = ns[k] == null ? "" : ns[k];
+    });
+    var box = $("[data-ns-sound-box]", nsDlg);
+    if (box) box.classList.toggle("is-off", !ns.sound);
+    $$("[data-ns-dnd] [data-value]", nsDlg).forEach(function (b) { b.classList.toggle("is-on", quiet() ? b.dataset.value !== "0" && b.dataset.value === String(ns.dndKind || "") : b.dataset.value === "0"); });
+    var dndState = $("[data-ns-dnd-state]", nsDlg);
+    if (dndState) dndState.textContent = quiet() ? "On until " + new Date(ns.dnd).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }) + ". The bell still counts." : "No popups, sounds or desktop notifications. The bell still counts.";
+    var ds = $("[data-ns-desktop-state]", nsDlg);
+    if (ds && "Notification" in window && Notification.permission === "denied") ds.textContent = "Blocked in this browser. Allow notifications for this site to turn it on.";
+    pushStatus();
+  }
+  on(document, "click", function (e) {
+    if (e.target.closest("[data-notify-settings-open]")) { e.preventDefault(); closeMenus(); nsSync(); openDialog(nsDlg); }
+    if (e.target.closest("[data-ns-preview]")) play(ns.tone || N.sound || "chime", ns.volume || 0.6);
+    if (e.target.closest("[data-sound-preview]")) {
+      var pick = $("#id_sound"), lvl = $("input[name=level]:checked");
+      play((pick && pick.value) || LEVEL_SOUND[lvl ? lvl.value : "info"] || N.sound || "chime", ns.volume || 0.6);
+    }
+    var d = e.target.closest("[data-ns-dnd] [data-value]");
+    if (d) {
+      var v = d.dataset.value;
+      if (v === "0") ns.dnd = 0;
+      else if (v === "tomorrow") { var t = new Date(); t.setDate(t.getDate() + 1); t.setHours(8, 0, 0, 0); ns.dnd = t.getTime(); }
+      else ns.dnd = Date.now() + (+v) * 60000;
+      ns.dndKind = v;
+      saveNs();
+      nsSync();
+    }
+    if (e.target.closest("[data-ns-test]") && P.test) post(P.test, new URLSearchParams()).then(function () { toast("Test sent"); });
+  });
+  on(nsDlg, "change", function (e) {
+    var el = e.target.closest("[data-ns]");
+    if (!el) return;
+    var k = el.dataset.ns;
+    ns[k] = el.type === "checkbox" ? el.checked : el.type === "range" ? +el.value : el.value;
+    if (k === "desktop" && el.checked && "Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission().then(function (p) { if (p !== "granted") { ns.desktop = false; saveNs(); nsSync(); toast("The browser did not allow notifications", "error"); } });
+    }
+    if (k === "volume" || k === "tone") play(ns.tone || N.sound || "chime", ns.volume);
+    if (k === "live") startLive();
+    saveNs();
+    nsSync();
+  });
+
+  function b64key(b) {
+    var pad = "=".repeat((4 - b.length % 4) % 4);
+    var raw = atob((b + pad).replace(/-/g, "+").replace(/_/g, "/"));
+    var out = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  }
+  var pushReg = null;
+  function pushSupported() { return P.enabled && "serviceWorker" in navigator && "PushManager" in window && window.isSecureContext; }
+  function registration() {
+    if (pushReg) return Promise.resolve(pushReg);
+    return navigator.serviceWorker.register(P.sw, { scope: P.scope }).then(function (r) { pushReg = r; return r; });
+  }
+  function pushStatus() {
+    var toggle = $("[data-ns-push]"), state = $("[data-ns-push-state]");
+    if (!toggle) return;
+    if (!pushSupported()) { toggle.disabled = true; if (state) state.textContent = window.isSecureContext ? "This browser does not support push." : "Push needs HTTPS."; return; }
+    registration().then(function (r) { return r.pushManager.getSubscription(); }).then(function (sub) {
+      pushOn = !!sub;
+      toggle.checked = pushOn;
+      if (state) state.textContent = pushOn ? "On for this device, even when the admin is closed." : "Get notifications even when the admin is closed.";
+    }).catch(function () {});
+  }
+  if (pushSupported()) registration().then(function (r) { return r.pushManager.getSubscription(); }).then(function (sub) { pushOn = !!sub; }).catch(function () {});
+  on(document, "change", function (e) {
+    if (!e.target.matches("[data-ns-push]")) return;
+    var want = e.target.checked;
+    registration().then(function (r) {
+      if (!want) return r.pushManager.getSubscription().then(function (sub) { if (!sub) return; return post(P.unsubscribe, { endpoint: sub.endpoint }, true).then(function () { return sub.unsubscribe(); }); });
+      return Notification.requestPermission().then(function (p) {
+        if (p !== "granted") throw new Error("denied");
+        return r.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64key(P.key) });
+      }).then(function (sub) { return post(P.subscribe, sub.toJSON(), true); });
+    }).then(function () { toast(want ? "Push is on for this device" : "Push is off for this device"); pushStatus(); })
+      .catch(function () { toast("Could not change push for this device", "error"); pushStatus(); });
+  });
 
   applyPrefs(prefs);
   applyLook();

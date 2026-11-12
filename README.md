@@ -1,6 +1,6 @@
 # django-cc-admin
 
-A new skin and a set of tools for the Django admin. It replaces the default look with one of fifteen themes, builds the dashboard from your settings, adds a command palette, keyboard shortcuts you can rebind, a GitHub style activity page for your team, better filters, row and page actions, CSV and JSON export, and a lot of small things the stock admin never had.
+A new skin and a set of tools for the Django admin. It replaces the default look with one of fifteen themes, builds the dashboard from your settings, and updates lists, dashboards and badges live without a page reload. It adds realtime notifications with popups, sounds, desktop and push notifications, a command palette, keyboard shortcuts you can rebind, a GitHub style activity page for your team, better filters, row and page actions, CSV and JSON export, and a lot of small things the stock admin never had.
 
 Your existing `ModelAdmin` classes keep working. Swap in `cc_admin.admin.ModelAdmin` only where you want the extra features.
 
@@ -24,7 +24,16 @@ INSTALLED_APPS = [
 ]
 ```
 
-That is all you need. Open `/admin/` and you get the new look, the palette and the theme switcher. A system check tells you if the app order is wrong.
+Then run `python manage.py migrate` once, for the notification tables.
+
+That is all you need. Open `/admin/` and you get the new look, the palette, the theme switcher, live updates and the notification bell. A system check tells you if the app order is wrong.
+
+Optional extras:
+
+```bash
+pip install "django-cc-admin[live]"   # WebSocket transport through Django Channels
+pip install "django-cc-admin[push]"   # Web Push to phones and closed browsers
+```
 
 ## Themes
 
@@ -93,8 +102,10 @@ CC_ADMIN = {
     "RADIUS": "soft",
     "TOKENS": {"side-w": "280px"},
     "THEMES": {
-        "acme": {"extends": "midnight", "label": "Acme", "tokens": {"accent": "#f97316"}},
+        "acme": {"extends": "midnight", "label": "Acme", "colors": {"accent": "#f97316"}},
+        "classic": {"enabled": False},
     },
+    "THEME_ORDER": None,
     "APPEARANCE": {"accent": True, "font": True, "font_size": True, "radius": True},
 
     "ENVIRONMENT": ("Staging", "warning"),
@@ -110,6 +121,10 @@ CC_ADMIN = {
     "COMMAND_PALETTE": {...},
     "SHORTCUTS": {...},
     "ACTIVITY": {...},
+    "LIVE": {...},
+    "NOTIFICATIONS": {...},
+    "PUSH": {...},
+    "ANNOUNCEMENTS": [...],
     "LOGIN": {"title": "Run the whole store from one place.", "text": "...", "image": "img/login.jpg"},
     "FORMS": {"switches": False, "json_editor": True, "show_cancel": True, "char_counter": True},
     "LIST_EXPORT": True,
@@ -149,6 +164,33 @@ Permission values used across the settings (`permission`, `ACTIVITY.view`, `ACTI
 `FONTS` takes `body`, `heading`, `mono` and `size`. Any of the bundled fonts works by name: Geist, Manrope, DM Sans, Figtree, Plus Jakarta Sans, IBM Plex Sans, Nunito, Archivo, Space Grotesk, Source Serif 4, Fraunces, Geist Mono, JetBrains Mono, IBM Plex Mono and Space Mono. For anything else add `"files": ["css/my-font.css"]` (or a Google Fonts URL) and use the family name. `"bundled": False` stops loading the bundled fonts. `FONTS: False` does the same.
 
 `RADIUS` is a length (`"8px"`, `0`) or one of `sharp`, `soft`, `round`.
+
+### Settings for each theme
+
+`THEMES` also takes the name of a built in theme, which changes that theme only. Every key is optional.
+
+```python
+"THEMES": {
+    "aurora": {
+        "label": "Company",
+        "note": "Our colours",
+        "colors": {"accent": "#0e8a8a", "sidebar": "#f2f7f7", "dark": {"accent": "#2dd4bf"}},
+        "fonts": {"body": "Manrope", "heading": "Fraunces"},
+        "radius": "soft",
+        "layout": "topbar",
+        "scheme": "dark",
+        "density": "compact",
+        "schemes": ["light", "dark"],
+        "swatch": ["#f6fafa", "#ffffff", "#0e8a8a", "#13262b"],
+        "tokens": {"side-w": "300px"},
+    },
+    "classic": {"enabled": False},
+    "acme": {"extends": "midnight", "label": "Acme", "colors": {"accent": "#f97316"}},
+},
+"THEME_ORDER": ["acme", "aurora", "midnight"],
+```
+
+`scheme` and `density` are the defaults for that theme until the user picks their own. `enabled: False` removes a theme from the switcher. A key that is not a built in theme makes a new theme on top of `extends`. `THEME_ORDER` sorts the switcher.
 
 `TOKENS` is the low level escape hatch. Every CSS variable behind the themes can be set there, so `{"side-w": "280px"}` becomes `--cc-side-w`. Look at the top of `cc_admin/static/cc_admin/css/cc.css` for the full list.
 
@@ -281,6 +323,157 @@ Every widget also takes `title`, `subtitle`, `icon`, `width` (1 to 12), `link`, 
 ```
 
 `view` decides who can open the activity pages at all. `others` decides who can see other people; everyone else only sees their own page. Use `"staff"` to make the team page open to all staff, `"none"` to keep it private, or `"perm:admin.view_logentry"`, `"group:Managers"` or a callable that gets `(request, user)`. `details: False` hides record names and change messages and keeps only the counts. Record links only show up for models the viewer can open.
+
+## Live updates
+
+Pages stay current without a reload:
+
+- Lists pick up new and changed rows, flash them, and update the record count, pagination and tab badges. If you have rows selected, a menu open or a row expanded, a small "This list has new changes" bar appears instead, so nothing jumps under your cursor.
+- When someone else saves the record you have open, a bar tells you who did it and which fields changed, with a reload button. Deleted records get a red bar.
+- The edit page shows who else is looking at the same record, and whether they are editing it.
+- Dashboard widgets refresh when the data behind them changes.
+- Sidebar and tab badges stay in sync.
+- A small dot in the top bar shows the connection state.
+
+```python
+"LIVE": {
+    "enabled": True,
+    "transport": "poll",
+    "url": "/ws/cc-admin/",
+    "interval": 5,
+    "hidden_interval": 30,
+    "stream_seconds": 25,
+    "lists": "auto",
+    "forms": True,
+    "presence": True,
+    "dashboard": True,
+    "dashboard_interval": 30,
+    "badges": True,
+    "highlight": True,
+},
+```
+
+There are three transports and they all speak the same protocol:
+
+| `transport` | How | Needs |
+|---|---|---|
+| `poll` | A small JSON request every `interval` seconds, slower in background tabs | Nothing. Works on any server |
+| `sse` | Server-Sent Events. One open connection per tab, reconnects every `stream_seconds` | Works on WSGI and ASGI. On WSGI each open tab holds a worker thread, so use threaded or async workers |
+| `websocket` | Django Channels. The server pushes a nudge the moment something changes | `pip install "django-cc-admin[live]"`, an ASGI server and the routing below |
+
+```python
+# asgi.py
+from channels.auth import AuthMiddlewareStack
+from channels.routing import ProtocolTypeRouter, URLRouter
+from django.core.asgi import get_asgi_application
+
+django_app = get_asgi_application()
+
+from cc_admin.routing import websocket_urlpatterns
+
+application = ProtocolTypeRouter({
+    "http": django_app,
+    "websocket": AuthMiddlewareStack(URLRouter(websocket_urlpatterns)),
+})
+```
+
+If the socket or stream keeps failing, the browser falls back to polling on its own.
+
+Changes made in the admin are picked up through the admin log. Changes made anywhere else (an API, a shell, a worker) are picked up through Django signals and a counter in the cache, so use a cache every process can see, such as Redis, Memcached, the database cache or the file cache. New rows are also caught by watching the highest primary key, which needs no cache at all. `lists: "banner"` always asks before refreshing a list, and `False` turns list updates off.
+
+## Notifications
+
+A bell in the top bar holds every notification, with All and Unread tabs and "Mark all read". New ones arrive live and show up as a popup in the corner with an icon, a short sound and a countdown bar. Hovering stops the countdown. Clicking opens the link and marks it read. When the tab is in the background the browser can show a desktop notification instead, and with push turned on the notification reaches a phone or a closed browser too.
+
+Send one from code:
+
+```python
+from cc_admin.notify import notify
+
+notify("staff", "Stock is low", body="Only 3 desks left.", link="/admin/shop/product/12/change/", level="warning", icon="package", sound="bell")
+```
+
+`to` can be a user, a queryset, a list, `"staff"`, `"superuser"`, `"group:Name"`, `"user:username"`, `"perm:app.codename"`, or a callable. `level` is `info`, `success`, `warning`, `danger`, `accent` or `neutral`. Every notification is stored, so people who were away still see it in the bell.
+
+Or let rules send them when models change:
+
+```python
+"NOTIFICATIONS": {
+    "rules": [
+        {"model": "shop.order", "on": "created", "title": "New order {obj.number}", "body": "{obj.customer} · ${obj.total}", "level": "success", "icon": "receipt", "sound": "cash"},
+        {"model": "shop.order", "on": "updated", "when": "shop.notifications.refunded", "title": "{obj.number} was refunded", "to": "superuser", "level": "danger"},
+        {"model": "shop.product", "on": ["updated", "deleted"], "to": "group:Warehouse", "title": "{model} {event}: {obj}"},
+    ],
+},
+```
+
+A rule takes `model`, `on` (`created`, `updated`, `deleted` or a list), `title` and `body` (with `{obj}`, `{actor}`, `{event}` and `{model}`), `to` (default `"staff"`), `when` (a callable or dotted path that gets `(obj, event)`), `link` (`"change"`, `"list"`, a URL or a callable), `level`, `icon`, `sound`, `push` and `exclude_actor` (default `True`, so you are not told about your own change).
+
+Superusers get a "Send a notification" page at `/admin/cc/notifications/send/` to message everyone, a group or one person, pick the style and sound, and push it to phones. `broadcast` decides who can use it.
+
+```python
+"NOTIFICATIONS": {
+    "enabled": True,
+    "bell": True,
+    "popup": True,
+    "position": "bottom-right",
+    "duration": 7,
+    "max": 4,
+    "sound": "chime",
+    "sounds": {"success": "chime", "info": "pop", "warning": "bell", "danger": "alert"},
+    "volume": 0.6,
+    "desktop": True,
+    "desktop_when": "hidden",
+    "user_settings": True,
+    "broadcast": "superuser",
+    "keep_days": 60,
+    "admin": True,
+    "rules": [],
+},
+```
+
+`position` is `top-right`, `top-center`, `top-left`, `bottom-right`, `bottom-center` or `bottom-left`. `duration: 0` keeps popups until closed. Sounds are made in the browser with the Web Audio API, so there are no audio files: `chime`, `pop`, `ping`, `bell`, `alert`, `sparkle`, `blip`, `cash`, `knock` and `none`. `desktop_when: "always"` shows desktop notifications even when the tab is open. `keep_days` is used by `python manage.py cc_admin_cleanup`, which you can run from cron. `admin: False` hides the Notifications and Push subscriptions models from the admin.
+
+With `user_settings` on, each person can turn popups and sounds on or off, pick a sound and volume, allow desktop notifications, turn push on for the current device, switch on do not disturb for an hour, four hours or until tomorrow, and pause live updates. That is kept in their browser.
+
+### Push notifications
+
+Web Push reaches people when the admin is closed, on desktop and on phones (on iPhone the admin has to be added to the home screen). It needs HTTPS, except on localhost.
+
+```bash
+pip install "django-cc-admin[push]"
+python manage.py cc_admin_vapid
+```
+
+Copy the keys it prints:
+
+```python
+"PUSH": {
+    "enabled": True,
+    "vapid_public_key": "BMx...",
+    "vapid_private_key": env("VAPID_PRIVATE_KEY"),
+    "vapid_claims": {"sub": "mailto:admin@example.com"},
+    "icon": "img/push-icon.png",
+    "badge": "img/push-badge.png",
+    "ttl": 3600,
+    "levels": None,
+},
+```
+
+People turn push on per device in the notification settings, and can send themselves a test. Pushes go out in a background thread, and subscriptions the browser has dropped are deleted. `levels` limits push to some levels, like `["warning", "danger"]`.
+
+## Announcements
+
+Show a popup or a banner to everyone, once:
+
+```python
+"ANNOUNCEMENTS": [
+    {"id": "new-reports", "style": "modal", "tone": "accent", "icon": "sparkles", "title": "Reports are here", "text": "Weekly numbers now live under Reports.", "link": "admin:shop_order_reports", "link_text": "Open reports", "image": "img/reports.png"},
+    {"id": "stocktake", "style": "banner", "tone": "warning", "title": "Stocktake on Friday.", "text": "Product edits are locked from 18:00.", "start": "2026-11-10", "end": "2026-11-14", "permission": "group:Warehouse"},
+],
+```
+
+Each person sees an announcement until they close it. Change the `id` to show it again.
 
 ## ModelAdmin
 
@@ -522,7 +715,7 @@ python manage.py seed
 python manage.py runserver
 ```
 
-Log in with `admin` / `admin`. The example shop uses most of the features above. The seed also adds a small team (`murad`, `leyla`, `elvin`, `nigar`, `sevda`, password same as the name) with a year of admin history, so the activity pages have something to show. Log in as one of them to see what a normal staff user gets. `CC_THEME=terminal python manage.py runserver` starts it in another theme.
+Log in with `admin` / `admin`. The example shop uses most of the features above. Run `python manage.py simulate` in a second terminal to keep placing fake orders and watch the lists, badges and notifications update live. `CC_LIVE=sse python manage.py runserver` uses the stream transport instead of polling. The seed also adds a small team (`murad`, `leyla`, `elvin`, `nigar`, `sevda`, password same as the name) with a year of admin history, so the activity pages have something to show. Log in as one of them to see what a normal staff user gets. `CC_THEME=terminal python manage.py runserver` starts it in another theme.
 
 ## Development
 
