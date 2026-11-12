@@ -1,5 +1,7 @@
 # django-cc-admin
 
+[![PyPI](https://img.shields.io/pypi/v/django-cc-admin?color=3775A9&logo=pypi&logoColor=white)](https://pypi.org/project/django-cc-admin/)
+
 A new skin and a set of tools for the Django admin. It replaces the default look with one of fifteen themes, builds the dashboard from your settings, and updates lists, dashboards and badges live without a page reload. It adds realtime notifications with popups, sounds, desktop and push notifications, a command palette, keyboard shortcuts you can rebind, a GitHub style activity page for your team, better filters, row and page actions, CSV and JSON export, and a lot of small things the stock admin never had.
 
 Your existing `ModelAdmin` classes keep working. Swap in `cc_admin.admin.ModelAdmin` only where you want the extra features.
@@ -13,6 +15,8 @@ Works with Django 5.0, 5.1, 5.2, 6.0 and 6.1, Python 3.10 and up.
 ```bash
 pip install django-cc-admin
 ```
+
+The package lives on PyPI: [pypi.org/project/django-cc-admin](https://pypi.org/project/django-cc-admin/).
 
 Put `cc_admin` above `django.contrib.admin`:
 
