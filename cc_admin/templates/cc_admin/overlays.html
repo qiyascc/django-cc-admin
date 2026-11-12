@@ -35,6 +35,50 @@
       <button type="button" data-value="spacious">{% icon "rows-3" %}<span>{% translate 'Roomy' %}</span></button>
     </div>
   </div>
+  {% if cc.appearance %}
+  <div class="cc-appearance">
+    {% if cc.appearance.accent %}
+    <div class="cc-panel-row">
+      <span class="cc-panel-label">{% translate 'Accent' %}</span>
+      <div class="cc-swatches" data-pref="accent">
+        <button type="button" data-value="" class="cc-swatch cc-swatch-auto" title="{% translate 'Theme default' %}">{% icon "sparkles" %}</button>
+        {% for color in cc.appearance.accents %}<button type="button" data-value="{{ color }}" class="cc-swatch" style="--sw:{{ color }}" title="{{ color }}"></button>{% endfor %}
+        <label class="cc-swatch cc-swatch-pick" title="{% translate 'Pick a colour' %}">{% icon "pipette" %}<input type="color" data-accent-pick></label>
+      </div>
+    </div>
+    {% endif %}
+    {% if cc.appearance.font %}
+    <div class="cc-panel-row">
+      <span class="cc-panel-label">{% translate 'Font' %}</span>
+      <select class="cc-select-sm" data-pref-select="font">
+        <option value="">{% translate 'Theme default' %}</option>
+        {% for font in cc.appearance.fonts %}<option value="{{ font.key }}" style="font-family:{{ font.stack }}">{{ font.label }}</option>{% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    {% if cc.appearance.font_size %}
+    <div class="cc-panel-row">
+      <span class="cc-panel-label">{% translate 'Text size' %}</span>
+      <div class="cc-segment" data-pref="size">
+        <button type="button" data-value="">{% translate 'Auto' %}</button>
+        {% for size in cc.appearance.sizes %}<button type="button" data-value="{{ size }}">{{ size }}</button>{% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% if cc.appearance.radius %}
+    <div class="cc-panel-row">
+      <span class="cc-panel-label">{% translate 'Corners' %}</span>
+      <div class="cc-segment" data-pref="radius">
+        <button type="button" data-value="">{% translate 'Auto' %}</button>
+        <button type="button" data-value="sharp"><i class="cc-corner" style="--r:0"></i><span>{% translate 'Sharp' %}</span></button>
+        <button type="button" data-value="soft"><i class="cc-corner" style="--r:3px"></i><span>{% translate 'Soft' %}</span></button>
+        <button type="button" data-value="round"><i class="cc-corner" style="--r:7px"></i><span>{% translate 'Round' %}</span></button>
+      </div>
+    </div>
+    {% endif %}
+    <button type="button" class="cc-link-btn" data-appearance-reset>{% icon "rotate-ccw" %}<span>{% translate 'Reset to theme' %}</span></button>
+  </div>
+  {% endif %}
   <div class="cc-theme-grid" data-pref="theme">
     {% for theme in cc.themes %}
       <button type="button" class="cc-theme-card" data-value="{{ theme.key }}" style="--s0:{{ theme.swatch.0 }};--s1:{{ theme.swatch.1 }};--s2:{{ theme.swatch.2 }};--s3:{{ theme.swatch.3 }}">
@@ -48,42 +92,11 @@
 {% if cc.shortcuts %}
 <dialog class="cc-dialog cc-keys" data-keys aria-label="{% translate 'Keyboard shortcuts' %}">
   <div class="cc-panel-head">
-    <div><b>{% translate 'Keyboard shortcuts' %}</b><small>{% translate 'Press ? anywhere to open this.' %}</small></div>
+    <div><b>{% translate 'Keyboard shortcuts' %}</b><small data-keys-hint>{% translate 'Click a shortcut to change it. Saved in this browser.' %}</small></div>
+    <button type="button" class="cc-btn cc-btn-sm" data-keys-reset hidden>{% icon "rotate-ccw" %}<span>{% translate 'Reset all' %}</span></button>
     <button type="button" class="cc-icon-btn" data-close aria-label="{% translate 'Close' %}">{% icon "x" %}</button>
   </div>
-  <div class="cc-keys-grid">
-    <section>
-      <h3>{% translate 'Anywhere' %}</h3>
-      <dl>
-        <div><dt><kbd data-mod>⌘</kbd><kbd>K</kbd></dt><dd>{% translate 'Command palette' %}</dd></div>
-        <div><dt><kbd>/</kbd></dt><dd>{% translate 'Focus search' %}</dd></div>
-        <div><dt><kbd>g</kbd><kbd>d</kbd></dt><dd>{% translate 'Go to dashboard' %}</dd></div>
-        <div><dt><kbd>g</kbd><kbd>s</kbd></dt><dd>{% translate 'Go to site' %}</dd></div>
-        <div><dt><kbd>t</kbd></dt><dd>{% translate 'Theme panel' %}</dd></div>
-        <div><dt><kbd>[</kbd></dt><dd>{% translate 'Toggle menu' %}</dd></div>
-        <div><dt><kbd>?</kbd></dt><dd>{% translate 'This list' %}</dd></div>
-      </dl>
-    </section>
-    <section>
-      <h3>{% translate 'Lists' %}</h3>
-      <dl>
-        <div><dt><kbd>j</kbd><kbd>k</kbd></dt><dd>{% translate 'Next / previous row' %}</dd></div>
-        <div><dt><kbd>x</kbd></dt><dd>{% translate 'Select row' %}</dd></div>
-        <div><dt><kbd>↵</kbd> <kbd>o</kbd></dt><dd>{% translate 'Open row' %}</dd></div>
-        <div><dt><kbd>n</kbd></dt><dd>{% translate 'Add new' %}</dd></div>
-        <div><dt><kbd>f</kbd></dt><dd>{% translate 'Filters' %}</dd></div>
-        <div><dt><kbd>←</kbd><kbd>→</kbd></dt><dd>{% translate 'Previous / next page' %}</dd></div>
-      </dl>
-    </section>
-    <section>
-      <h3>{% translate 'Forms' %}</h3>
-      <dl>
-        <div><dt><kbd data-mod>⌘</kbd><kbd>S</kbd></dt><dd>{% translate 'Save and continue' %}</dd></div>
-        <div><dt><kbd data-mod>⌘</kbd><kbd>↵</kbd></dt><dd>{% translate 'Save' %}</dd></div>
-        <div><dt><kbd>esc</kbd></dt><dd>{% translate 'Leave field' %}</dd></div>
-      </dl>
-    </section>
-  </div>
+  <div class="cc-keys-grid" data-keys-body></div>
 </dialog>
 {% endif %}
 <dialog class="cc-dialog cc-confirm" data-confirm-dialog>

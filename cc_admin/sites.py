@@ -20,7 +20,17 @@ def install():
         def search(request):
             return views.search(request, site)
 
-        return [path("cc/search/", self.admin_view(search), name="cc_search")] + get_urls(self)
+        def activity_index(request):
+            return views.activity_index(request, site)
+
+        def activity_user(request, user_id):
+            return views.activity_user(request, site, user_id)
+
+        return [
+            path("cc/search/", self.admin_view(search), name="cc_search"),
+            path("cc/activity/", self.admin_view(activity_index), name="cc_activity"),
+            path("cc/activity/<int:user_id>/", self.admin_view(activity_user), name="cc_activity_user"),
+        ] + get_urls(self)
 
     def cc_each_context(self, request):
         request._cc_admin_site = self

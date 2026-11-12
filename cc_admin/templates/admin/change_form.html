@@ -24,6 +24,7 @@
 {% endif %}
 
 {% block content_title %}
+  {% if cc.back_button and not is_popup and has_view_permission %}<a href="{% url opts|admin_urlname:'changelist' %}{% if preserved_filters %}?{{ preserved_filters }}{% endif %}" class="cc-back" data-back-link title="{% translate 'Back to the list' %}">{% icon "arrow-left" %}<span>{{ opts.verbose_name_plural|capfirst }}</span></a>{% endif %}
   <p class="cc-eyebrow">{{ opts.verbose_name|capfirst }}{% if change and original.pk %} · #{{ original.pk|unlocalize }}{% endif %}</p>
   <h1 {% if change and original %}data-recent-title data-recent-model="{{ opts.verbose_name|capfirst }}"{% endif %}>{% if add %}{% blocktranslate with name=opts.verbose_name %}New {{ name }}{% endblocktranslate %}{% else %}{{ original|truncatewords:"18" }}{% endif %}</h1>
   {% if subtitle and add %}<p class="cc-lead">{{ subtitle }}</p>{% endif %}
@@ -34,21 +35,20 @@
 {% block object-tools %}
 {% if not is_popup %}
   <div class="cc-tools object-tools">
-    {% for action in cc_detail_actions %}
-      <button type="submit" form="cc-action-form" formaction="{{ action.url }}" class="cc-btn cc-btn-{{ action.variant }}"{% if action.confirm %} data-confirm="{{ action.confirm }}"{% endif %}{% if action.new_tab %} formtarget="_blank"{% endif %}>{% if action.icon %}{% icon action.icon %}{% endif %}<span>{{ action.label }}</span></button>
-    {% endfor %}
+    {% include "cc_admin/action_buttons.html" with actions=cc_detail_actions %}
     {% if change %}{% block object-tools-items %}{% change_form_object_tools %}{% endblock %}{% endif %}
   </div>
 {% endif %}
 {% endblock %}
 
 {% block content %}<div id="content-main">
-<form {% if has_file_field %}enctype="multipart/form-data" {% endif %}{% if form_url %}action="{{ form_url }}" {% endif %}method="post" id="{{ opts.model_name }}_form" class="cc-form{% if cc_compressed %} cc-compressed{% endif %}" novalidate data-cc-form{% if cc_warn_unsaved %} data-warn-unsaved{% endif %}{% if cc_conditional_fields and cc_conditional_fields != "{}" %} data-conditional="{{ cc_conditional_fields }}"{% endif %}>{% csrf_token %}{% block form_top %}{% endblock %}
+<form {% if has_file_field %}enctype="multipart/form-data" {% endif %}{% if form_url %}action="{{ form_url }}" {% endif %}method="post" id="{{ opts.model_name }}_form" class="cc-form{% if cc_compressed %} cc-compressed{% endif %}" novalidate data-cc-form{% if cc.char_counter %} data-char-counter{% endif %}{% if cc_warn_unsaved %} data-warn-unsaved{% endif %}{% if cc_conditional_fields and cc_conditional_fields != "{}" %} data-conditional="{{ cc_conditional_fields }}"{% endif %}>{% csrf_token %}{% block form_top %}{% endblock %}
 <div>
 {% if is_popup %}<input type="hidden" name="{{ is_popup_var }}" value="1">{% endif %}
 {% if to_field %}<input type="hidden" name="{{ to_field_var }}" value="{{ to_field }}">{% endif %}
 {% if source_model %}<input type="hidden" name="{{ source_model_var }}" value="{{ source_model }}">{% endif %}
 {% if save_on_top %}{% block submit_buttons_top %}{% submit_row %}{% endblock %}{% endif %}
+{% if cc_model_admin.change_form_before_template %}{% include cc_model_admin.change_form_before_template %}{% endif %}
 {% if errors %}
   <div class="cc-note cc-tone-danger errornote">
     {% icon "circle-exclamation-point" %}
@@ -60,9 +60,9 @@
 {% cc_inline_tabs inline_admin_formsets as inline_tabs %}
 {% if split.tabs or inline_tabs %}
   <nav class="cc-tabs cc-form-tabs" data-tabs role="tablist">
-    <button type="button" class="cc-tab" data-tab="general" role="tab">{% translate 'General' %}</button>
-    {% for fieldset in split.tabs %}<button type="button" class="cc-tab" data-tab="fs-{{ forloop.counter }}" role="tab">{{ fieldset.name|default:_("Details") }}</button>{% endfor %}
-    {% for inline_admin_formset in inline_tabs %}<button type="button" class="cc-tab" data-tab="in-{{ inline_admin_formset.formset.prefix }}" role="tab">{% if inline_admin_formset.formset.max_num == 1 %}{{ inline_admin_formset.opts.verbose_name|capfirst }}{% else %}{{ inline_admin_formset.opts.verbose_name_plural|capfirst }}{% endif %}<em class="cc-count">{{ inline_admin_formset.formset.initial_form_count }}</em></button>{% endfor %}
+    <button type="button" form="cc-detached" class="cc-tab" data-tab="general" role="tab">{% translate 'General' %}</button>
+    {% for fieldset in split.tabs %}<button type="button" form="cc-detached" class="cc-tab" data-tab="fs-{{ forloop.counter }}" role="tab">{{ fieldset.name|default:_("Details") }}</button>{% endfor %}
+    {% for inline_admin_formset in inline_tabs %}<button type="button" form="cc-detached" class="cc-tab" data-tab="in-{{ inline_admin_formset.formset.prefix }}" role="tab">{% if inline_admin_formset.formset.max_num == 1 %}{{ inline_admin_formset.opts.verbose_name|capfirst }}{% else %}{{ inline_admin_formset.opts.verbose_name_plural|capfirst }}{% endif %}<em class="cc-count">{{ inline_admin_formset.formset.initial_form_count }}</em></button>{% endfor %}
   </nav>
 {% endif %}
 <div class="cc-form-layout{% if adminform|cc_has_aside %} has-aside{% endif %}">
@@ -90,7 +90,9 @@
     {% endfor %}
     {% endblock %}
 
+    {% if cc_form_sections %}<div class="cc-form-sections">{% for html in cc_form_sections %}<div class="cc-card">{{ html }}</div>{% endfor %}</div>{% endif %}
     {% block after_related_objects %}{% endblock %}
+    {% if cc_model_admin.change_form_after_template %}{% include cc_model_admin.change_form_after_template %}{% endif %}
   </div>
   {% if adminform|cc_has_aside %}
     <aside class="cc-form-aside">

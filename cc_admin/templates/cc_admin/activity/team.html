@@ -1,0 +1,53 @@
+{% extends "admin/base_site.html" %}
+{% load i18n cc_admin %}
+
+{% block bodyclass %}{{ block.super }} cc-activity-page{% endblock %}
+{% block breadcrumbs %}
+<ol class="breadcrumbs">
+  <li><a href="{% url 'admin:index' %}">{% translate 'Home' %}</a></li>
+  <li aria-current="page">{% translate 'Activity' %}</li>
+</ol>
+{% endblock %}
+{% block content_title %}
+  <h1>{% translate 'Activity' %}</h1>
+  <p class="cc-lead">{% translate 'Who changed what in the admin, day by day.' %}</p>
+{% endblock %}
+{% block object-tools %}<div class="cc-tools">{% include "cc_admin/activity/years.html" %}</div>{% endblock %}
+
+{% block content %}
+<div id="content-main" class="cc-team">
+  <div class="cc-grid">
+    <section class="cc-card cc-span-3 cc-kpi"><div class="cc-kpi-top"><span class="cc-kpi-label">{% translate 'Changes' %}</span><span class="cc-kpi-icon">{% icon "activity" %}</span></div><div class="cc-kpi-value">{{ activity.total|cc_compact }}</div><div class="cc-kpi-foot">{% if activity.year %}{{ activity.year }}{% else %}{% translate 'last 12 months' %}{% endif %}</div></section>
+    <section class="cc-card cc-span-3 cc-kpi"><div class="cc-kpi-top"><span class="cc-kpi-label">{% translate 'People' %}</span><span class="cc-kpi-icon">{% icon "users" %}</span></div><div class="cc-kpi-value">{{ people|cc_active_count }}</div><div class="cc-kpi-foot">{% blocktranslate count counter=people|length %}of {{ counter }} account{% plural %}of {{ counter }} accounts{% endblocktranslate %}</div></section>
+    <section class="cc-card cc-span-3 cc-kpi"><div class="cc-kpi-top"><span class="cc-kpi-label">{% translate 'Models touched' %}</span><span class="cc-kpi-icon">{% icon "boxes" %}</span></div><div class="cc-kpi-value">{{ activity.models_touched }}</div><div class="cc-kpi-foot">{% blocktranslate with n=activity.stats.active_days %}{{ n }} active days{% endblocktranslate %}</div></section>
+    <section class="cc-card cc-span-3 cc-kpi"><div class="cc-kpi-top"><span class="cc-kpi-label">{% translate 'Busiest day' %}</span><span class="cc-kpi-icon">{% icon "flame" %}</span></div><div class="cc-kpi-value">{% if activity.stats.busiest %}{{ activity.stats.busiest|date:'M j' }}{% else %}—{% endif %}</div><div class="cc-kpi-foot">{% if activity.stats.busiest %}{% blocktranslate count counter=activity.stats.busiest_count %}{{ counter }} change{% plural %}{{ counter }} changes{% endblocktranslate %}{% endif %}</div></section>
+    <section class="cc-card cc-span-12 cc-contrib">
+      <header class="cc-contrib-head">
+        <h2>{% blocktranslate count counter=activity.total %}{{ counter }} change by the whole team{% plural %}{{ counter }} changes by the whole team{% endblocktranslate %}</h2>
+        {% include "cc_admin/activity/split.html" %}
+      </header>
+      {% with cal=activity.calendar %}{% include "cc_admin/activity/calendar.html" %}{% endwith %}
+    </section>
+  </div>
+  <div class="cc-team-cols">
+    <section class="cc-people">
+      <div class="cc-feed-head"><h2>{% translate 'People' %}</h2></div>
+      {% for p in people %}
+        <a class="cc-card cc-person{% if not p.count %} is-quiet{% endif %}" {% if p.url %}href="{{ p.url }}{% if activity.year %}?year={{ activity.year }}{% endif %}"{% endif %}>
+          <span class="cc-avatar" data-seed="{{ p.username }}">{{ p.name|cc_initials }}</span>
+          <span class="cc-person-text">
+            <b>{{ p.name }}{% if p.superuser %}<em class="cc-badge cc-tone-accent">{% translate 'Superuser' %}</em>{% endif %}</b>
+            <small>{% if p.count %}{% blocktranslate count counter=p.count with models=p.models %}{{ counter }} change in {{ models }} models{% plural %}{{ counter }} changes in {{ models }} models{% endblocktranslate %}{% else %}{% translate 'No changes in this period' %}{% endif %}</small>
+            {% if p.last %}<small class="cc-muted">{% blocktranslate with ago=p.last|timesince %}Active {{ ago }} ago{% endblocktranslate %}{% if p.top %} · {% translate 'mostly' %} {{ p.top.label|lower }}{% endif %}</small>{% endif %}
+          </span>
+          <span class="cc-person-weeks" title="{% translate 'Last 12 weeks' %}">{% for w in p.weeks %}<i style="--h:{{ w.share }}%"{% if not w.value %} class="z"{% endif %}></i>{% endfor %}</span>
+          <span class="cc-person-share"><b>{{ p.share|floatformat:0 }}%</b></span>
+        </a>
+      {% endfor %}
+    </section>
+    <section>
+      {% include "cc_admin/activity/feed.html" %}
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,7 @@
+{% load i18n cc_admin %}{% get_current_language as current %}<div class="cc-dropdown cc-lang" data-menu>
+  <button type="button" class="cc-icon-btn" data-menu-toggle aria-label="{% translate 'Language' %}" title="{% translate 'Language' %}">{% icon "languages" %}</button>
+  <form class="cc-menu cc-menu-right" role="menu" method="post" action="{{ cc.languages.action }}">{% csrf_token %}
+    <input type="hidden" name="next" value="{{ cc.languages.next }}">
+    {% for lang in cc.languages.items %}<button type="submit" name="language" value="{{ lang.code }}" class="cc-menu-item{% if lang.code == current %} is-on{% endif %}" role="menuitem"><span>{{ lang.name|capfirst }}</span><em>{{ lang.code }}</em></button>{% endfor %}
+  </form>
+</div>

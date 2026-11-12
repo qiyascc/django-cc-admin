@@ -12,8 +12,9 @@ from django.templatetags.static import static
 from django.urls import NoReverseMatch, reverse
 from django.utils.html import escape, format_html, format_html_join
 from django.utils.safestring import mark_safe
+from django.utils.translation import gettext_lazy as _
 
-from .. import __version__, charts, conf, dashboard, icons, navigation, themes
+from .. import __version__, activity, charts, conf, dashboard, icons, navigation, shortcuts, themes
 
 register = template.Library()
 
@@ -37,14 +38,68 @@ def _environment(request):
     return value
 
 
-def _user_links(request):
+def _links(key, request, default_icon="arrow-up-right"):
     links = []
-    for raw in conf.get("USER_LINKS") or []:
+    for raw in conf.evaluate(conf.get(key), request) or []:
         raw = conf.evaluate(raw, request)
-        if raw.get("permission") is not None and not conf.call(raw["permission"], request):
+        if not raw or (raw.get("permission") is not None and not conf.rule(raw["permission"], request)):
             continue
-        links.append({"title": raw.get("title", ""), "icon": raw.get("icon", "arrow-up-right"), "url": conf.link(raw.get("link"), request)})
+        links.append(
+            {
+                "title": raw.get("title", ""),
+                "icon": raw.get("icon", default_icon),
+                "url": conf.link(raw.get("link"), request),
+                "new_tab": bool(raw.get("new_tab")),
+            }
+        )
     return links
+
+
+def _user_links(request):
+    return _links("USER_LINKS", request)
+
+
+def _languages(request):
+    if not conf.get("SHOW_LANGUAGES"):
+        return None
+    from django.conf import settings as dj
+    from django.utils.translation import get_language_info
+
+    try:
+        action = reverse("set_language")
+    except NoReverseMatch:
+        return None
+    items = []
+    for code, name in dj.LANGUAGES:
+        try:
+            info = get_language_info(code)
+            label = info.get("name_local") or name
+        except KeyError:
+            label = name
+        items.append({"code": code, "name": str(label)})
+    return {"action": action, "items": items, "next": request.get_full_path() if request else "/"}
+
+
+def _fonts():
+    value = conf.get("FONTS")
+    if isinstance(value, dict):
+        return value.get("bundled", True), [conf.asset(f) for f in value.get("files") or []]
+    return bool(value), []
+
+
+def _appearance():
+    data = conf.get("APPEARANCE")
+    if not conf.get("THEME_SWITCHER"):
+        return None
+    return {
+        "accent": data.get("accent"),
+        "accents": data.get("accents") or [],
+        "font": data.get("font"),
+        "fonts": [{"key": f, "label": "System" if f == "system" else f, "stack": themes.font_stack(f)} for f in themes.user_fonts()],
+        "font_size": data.get("font_size"),
+        "sizes": themes.SIZES,
+        "radius": data.get("radius"),
+    }
 
 
 @register.simple_tag(takes_context=True)
@@ -61,6 +116,13 @@ def cc_setup(context):
         site_url = context.get("site_url")
     palette = conf.get("COMMAND_PALETTE")
     registry = themes.registry()
+    bundled_fonts, font_files = _fonts()
+    keys = shortcuts.client_config(request)
+    environment = _environment(request)
+    prefix = conf.get("ENVIRONMENT_TITLE_PREFIX")
+    if prefix is True and environment:
+        prefix = f"[{environment['label']}]"
+    show_activity = request is not None and getattr(request, "user", None) is not None and request.user.is_authenticated and activity.enabled(request)
     data = {
         "version": __version__,
         "title": title,
@@ -70,18 +132,29 @@ def cc_setup(context):
         "logo": conf.themed_asset(conf.get("SITE_LOGO"), request),
         "icon": conf.themed_asset(conf.get("SITE_ICON"), request),
         "favicon": conf.asset(conf.get("SITE_FAVICON"), request),
+        "symbol": conf.evaluate(conf.get("SITE_SYMBOL"), request),
+        "dropdown": _links("SITE_DROPDOWN", request),
+        "title_prefix": prefix or "",
+        "languages": _languages(request),
+        "back_button": conf.get("SHOW_BACK_BUTTON"),
+        "char_counter": conf.get("FORMS").get("char_counter"),
+        "font_files": font_files,
+        "appearance": _appearance(),
+        "activity_url": activity.url(request, request.user) if show_activity else "",
+        "activity_team_url": activity.url(request) if show_activity and activity.settings().get("team") and activity.can_see_others(request) else "",
+        "activity_menu": show_activity and activity.settings().get("menu"),
         "theme": theme,
         "scheme": resolved["scheme"],
         "density": resolved["density"],
         "layout": resolved["layout"],
-        "fonts": conf.get("FONTS"),
+        "fonts": bundled_fonts,
         "switcher": conf.get("THEME_SWITCHER"),
         "themes": list(registry.values()),
         "styles": [conf.asset(s, request) for s in conf.get("STYLES") or []],
         "scripts": [conf.asset(s, request) for s in conf.get("SCRIPTS") or []],
-        "environment": _environment(request),
+        "environment": environment,
         "palette": palette.get("enabled"),
-        "shortcuts": conf.get("SHORTCUTS"),
+        "shortcuts": keys["enabled"],
         "sidebar_search": conf.get("SIDEBAR").get("search"),
         "pinned": conf.get("SIDEBAR").get("pinned"),
         "user_links": _user_links(request),
@@ -106,7 +179,13 @@ def cc_setup(context):
             "palette": bool(palette.get("enabled")),
             "searchModels": bool(palette.get("search_models")),
             "minLength": palette.get("min_length", 2),
-            "shortcuts": bool(conf.get("SHORTCUTS")),
+            "shortcuts": keys,
+            "commands": _commands(request),
+            "activity": activity.url(request, request.user) if show_activity else "",
+            "appearance": bool(_appearance()),
+            "perPage": conf.get("LIST_PER_PAGE_OPTIONS") or [],
+            "fonts": {f: themes.font_stack(f) for f in themes.user_fonts()},
+            "site": site_url or "",
             "themes": {t.key: {"label": t.label, "layout": t.layout, "schemes": list(t.schemes), "css": t.css_key} for t in registry.values()},
             "models": [{"title": m["title"], "app": m["app"], "icon": m["icon"], "url": m["url"], "add": m["add_url"], "key": m["key"]} for m in data["models"]],
             "search": _search_url(request),
@@ -115,6 +194,25 @@ def cc_setup(context):
     ).replace("</", "<\\/")
     context["cc"] = data
     return ""
+
+
+def _commands(request):
+    found = []
+    for raw in conf.get("COMMAND_PALETTE").get("commands") or []:
+        raw = conf.evaluate(raw, request)
+        if not raw or (raw.get("permission") is not None and not conf.rule(raw["permission"], request)):
+            continue
+        found.append(
+            {
+                "title": str(raw.get("title", "")),
+                "sub": str(raw.get("subtitle", "")),
+                "icon": raw.get("icon", "arrow-right"),
+                "url": conf.link(raw.get("link"), request),
+                "group": str(raw.get("group", "Commands")),
+                "keywords": str(raw.get("keywords", "")),
+            }
+        )
+    return found
 
 
 def _search_url(request):
@@ -154,12 +252,12 @@ def cc_media(context, media):
     return mark_safe(text)
 
 
-@register.simple_tag
-def cc_tokens():
+@register.simple_tag(takes_context=True)
+def cc_tokens(context):
     css = themes.token_css()
-    if not css:
-        return ""
-    return mark_safe(f'<style id="cc-tokens">{css}</style>')
+    mine = themes.user_css(context.get("request"))
+    html = f'<style id="cc-tokens">{css}</style>' if css else ""
+    return mark_safe(html + f'<style id="cc-user-tokens">{mine}</style>')
 
 
 @register.simple_tag(takes_context=True)
@@ -395,3 +493,46 @@ def cc_login(context):
         "title": conf.evaluate(login.get("title"), request),
         "text": conf.evaluate(login.get("text"), request),
     }
+
+
+VERB_LABELS = {"added": _("added"), "changed": _("changed"), "deleted": _("deleted")}
+
+
+@register.filter
+def cc_verb(value):
+    return VERB_LABELS.get(value, value)
+
+
+@register.filter
+def cc_active_count(people):
+    return sum(1 for p in people or [] if p.get("count"))
+
+
+@register.simple_tag(takes_context=True)
+def cc_row_meta(context, cl, index, sortable=False):
+    request = getattr(context, "request", None) or context.get("request")
+    try:
+        obj = cl.result_list[int(index)]
+    except (IndexError, TypeError, ValueError):
+        return {}
+    model_admin = cl.model_admin
+    meta = model_admin.cc_row_meta(request, obj) if hasattr(model_admin, "cc_row_meta") else {"pk": obj.pk, "sections": []}
+    meta["extra"] = 1 + (1 if sortable else 0)
+    return meta
+
+
+@register.simple_tag(takes_context=True)
+def cc_list_flags(context, cl):
+    request = getattr(context, "request", None) or context.get("request")
+    model_admin = cl.model_admin
+    sortable = hasattr(model_admin, "cc_sortable") and request is not None and model_admin.cc_sortable(request)
+    return {"sortable": sortable, "sections": bool(getattr(model_admin, "list_sections", None))}
+
+
+@register.simple_tag
+def cc_per_page(cl):
+    from ..admin import per_page_options
+
+    model_admin = cl.model_admin
+    options = per_page_options(model_admin) if hasattr(model_admin, "cc_row_meta") else []
+    return {"options": options, "key": f"{cl.opts.app_label}.{cl.opts.model_name}"}

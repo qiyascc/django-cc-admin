@@ -1,0 +1,10 @@
+{% load cc_admin %}
+<section class="cc-card cc-span-{{ widget.width }} cc-widget-cohort">
+  {% include "cc_admin/widgets/_head.html" %}
+  <div class="cc-cohort-wrap">
+    <table class="cc-cohort">
+      <thead><tr><th></th>{% for h in widget.data.headers %}<th>{{ h }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for row in widget.data.rows %}<tr><th><b>{{ row.label }}</b><small>{{ row.sub }}</small></th>{% for c in row.cells %}{% if c %}<td class="c{{ c.level }}" title="{{ c.value }}">{{ c.text }}</td>{% else %}<td class="cc-cohort-empty"></td>{% endif %}{% endfor %}</tr>{% endfor %}</tbody>
+    </table>
+  </div>
+</section>

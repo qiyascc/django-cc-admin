@@ -1,0 +1,10 @@
+{% load i18n %}
+<details class="cc-filter cc-filter-input" data-filter-title="{{ title }}" open>
+  <summary>{{ title|capfirst }}</summary>
+  <div class="cc-slider" data-slider style="--lo:0;--hi:100">
+    <div class="cc-slider-track"><i></i></div>
+    <input type="range" min="{{ spec.low }}" max="{{ spec.high }}" step="{{ spec.step }}" name="{{ spec.lookup_gte }}" value="{% firstof spec.value_from spec.low %}" aria-label="{% translate 'From' %}">
+    <input type="range" min="{{ spec.low }}" max="{{ spec.high }}" step="{{ spec.step }}" name="{{ spec.lookup_lte }}" value="{% firstof spec.value_to spec.high %}" aria-label="{% translate 'To' %}">
+  </div>
+  <div class="cc-slider-values"><output data-slider-lo></output><output data-slider-hi></output></div>
+</details>

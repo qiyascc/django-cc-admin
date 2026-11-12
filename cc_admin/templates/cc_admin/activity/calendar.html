@@ -1,0 +1,8 @@
+{% load i18n cc_admin %}<div class="cc-heat cc-heat-click" style="--w:{{ cal.count }}" data-heat>
+  <div class="cc-heat-months">{% for col, name in cal.months %}<span style="--c:{{ col|cc_add:2 }}">{{ name }}</span>{% endfor %}</div>
+  <div class="cc-heat-grid">
+    <b>{% translate 'Mon' %}</b><b></b><b>{% translate 'Wed' %}</b><b></b><b>{% translate 'Fri' %}</b><b></b><b></b>
+    {% for week in cal.weeks %}{% for c in week %}{% if c.hidden or c.future %}<i class="f"></i>{% else %}<a class="l{{ c.level }}{% if c.selected %} is-selected{% endif %}" href="{{ base_query }}day={{ c.iso }}" data-day="{{ c.iso }}" aria-label="{% blocktranslate count counter=c.value with day=c.date|date:'D, M j' %}{{ counter }} change on {{ day }}{% plural %}{{ counter }} changes on {{ day }}{% endblocktranslate %}"></a>{% endif %}{% endfor %}{% endfor %}
+  </div>
+  <div class="cc-heat-foot"><span>{% translate 'Click a day to see what happened.' %}</span><span class="cc-heat-legend">{% translate 'less' %} <i></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> {% translate 'more' %}</span></div>
+</div>

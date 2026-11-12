@@ -1,0 +1,18 @@
+{% extends "cc_admin/page.html" %}
+{% load cc_admin %}
+
+{% block page %}
+<div class="cc-grid">
+  <section class="cc-card cc-span-8">
+    <header class="cc-card-head"><div><span class="cc-card-icon">{% icon "chart-pie" %}</span><div><h2>Revenue by channel</h2><p>All orders, all time</p></div></div></header>
+    <table class="cc-table">
+      <thead><tr><th>Channel</th><th>Orders</th><th>Revenue</th></tr></thead>
+      <tbody>{% for row in rows %}<tr><td>{{ row.channel|capfirst }}</td><td>{{ row.n }}</td><td>${{ row.revenue|floatformat:2 }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </section>
+  <section class="cc-card cc-span-4 cc-note-card">
+    <header class="cc-card-head"><div><span class="cc-card-icon">{% icon "info" %}</span><div><h2>Custom page</h2></div></div></header>
+    <p class="cc-muted">This page is a plain Django view. It extends <code>cc_admin/page.html</code> and gets the menu, theme and shortcuts for free.</p>
+  </section>
+</div>
+{% endblock %}

@@ -10,11 +10,12 @@
       <b>{% firstof user.get_full_name user.get_username %}</b>
       {% if user.email %}<small>{{ user.email }}</small>{% endif %}
     </div>
+    {% if cc.activity_url %}<a class="cc-menu-item" href="{{ cc.activity_url }}" role="menuitem">{% icon "activity" %}<span>{% translate 'My activity' %}</span></a>{% endif %}
     {% if cc.site_url %}<a class="cc-menu-item" href="{{ cc.site_url }}" role="menuitem">{% icon "external-link" %}<span>{% translate 'View site' %}</span></a>{% endif %}
     {% for link in cc.user_links %}<a class="cc-menu-item" href="{{ link.url }}" role="menuitem">{% icon link.icon %}<span>{{ link.title }}</span></a>{% endfor %}
     {% if user.is_active and user.is_staff %}{% url 'django-admindocs-docroot' as docsroot %}{% if docsroot %}<a class="cc-menu-item" href="{{ docsroot }}" role="menuitem">{% icon "book-open" %}<span>{% translate 'Documentation' %}</span></a>{% endif %}{% endif %}
     {% if cc.switcher %}<button type="button" class="cc-menu-item" data-theme-open role="menuitem">{% icon "palette" %}<span>{% translate 'Theme' %}</span><em>{{ cc.theme.label }}</em></button>{% endif %}
-    {% if cc.shortcuts %}<button type="button" class="cc-menu-item" data-keys-open role="menuitem">{% icon "keyboard" %}<span>{% translate 'Keyboard shortcuts' %}</span><kbd>?</kbd></button>{% endif %}
+    {% if cc.shortcuts %}<button type="button" class="cc-menu-item" data-keys-open role="menuitem">{% icon "keyboard" %}<span>{% translate 'Keyboard shortcuts' %}</span><kbd data-shortcut="help"></kbd></button>{% endif %}
     {% if user.has_usable_password %}<a class="cc-menu-item" href="{% url 'admin:password_change' %}" role="menuitem">{% icon "lock" %}<span>{% translate 'Change password' %}</span></a>{% endif %}
     <hr>
     <form id="logout-form" method="post" action="{% url 'admin:logout' %}">{% csrf_token %}<button type="submit" class="cc-menu-item cc-tone-danger" role="menuitem">{% icon "log-out" %}<span>{% translate 'Log out' %}</span></button></form>

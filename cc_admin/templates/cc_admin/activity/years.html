@@ -1,0 +1,4 @@
+{% load i18n %}<nav class="cc-years" aria-label="{% translate 'Period' %}">
+  <a href="?" class="{% if not activity.year %}is-on{% endif %}">{% translate 'Last 12 months' %}</a>
+  {% for y in years %}<a href="?year={{ y }}" class="{% if activity.year == y %}is-on{% endif %}">{{ y }}</a>{% endfor %}
+</nav>

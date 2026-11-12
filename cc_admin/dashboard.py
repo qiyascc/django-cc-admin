@@ -12,7 +12,7 @@ from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.text import capfirst
 
-from . import charts, conf, navigation
+from . import activity, charts, conf, navigation
 
 DOTTED = re.compile(r"^[A-Za-z_]\w*(\.[A-Za-z_]\w*)+$")
 
@@ -27,6 +27,10 @@ WIDTHS = {
     "links": 4,
     "recent": 4,
     "heatmap": 12,
+    "contributions": 8,
+    "team": 4,
+    "cohort": 12,
+    "tracker": 6,
     "html": 12,
     "note": 12,
     "apps": 12,
@@ -170,6 +174,7 @@ def _activity(spec, request):
                 "verb": "added" if entry.is_addition() else "deleted" if entry.is_deletion() else "changed",
                 "model": capfirst(entry.content_type.model_class()._meta.verbose_name) if entry.content_type and entry.content_type.model_class() else "",
                 "who": entry.user.get_short_name() or entry.user.get_username() if entry.user_id else "",
+                "who_url": activity.url(request, entry.user) if entry.user_id and activity.can_see(request, entry.user) else "",
             }
         )
     return {"items": rows}
@@ -208,6 +213,59 @@ def _heatmap(spec, request):
     return {"weeks": columns, "months": months, "total": total, "count": weeks}
 
 
+def _contributions(spec, request):
+    data = activity.widget(request, spec.get("scope", "me"), int(spec.get("weeks", 26)))
+    if data is None:
+        return None
+    data["base_query"] = (data["link"] + "?") if data["link"] else "?"
+    return data
+
+
+def _team(spec, request):
+    if not activity.enabled(request) or not activity.can_see_others(request):
+        return None
+    days = int(spec.get("days", 30))
+    end = timezone.localdate()
+    start = end - datetime.timedelta(days=days - 1)
+    people = [p for p in activity.people(request, start, end) if p["count"]][: int(spec.get("limit", 6))]
+    peak = max((p["count"] for p in people), default=0) or 1
+    for p in people:
+        p["bar"] = round(p["count"] / peak * 100, 1)
+    return {"people": people, "days": days, "link": activity.url(request)}
+
+
+def _cohort(spec, request):
+    data = source(spec.get("data"), request) or {}
+    rows = []
+    for row in data.get("rows", []):
+        values = list(row.get("values", []))
+        base = row.get("total") or (values[0] if values else 0) or 1
+        cells = []
+        for v in values:
+            if v is None:
+                cells.append(None)
+                continue
+            share = float(v) / float(base) * 100
+            cells.append({"value": v, "share": share, "text": f"{share:.0f}%" if spec.get("percent", True) else charts.compact(v), "level": min(10, int(share / 10) + (1 if share else 0))})
+        rows.append({"label": row.get("label", ""), "sub": row.get("sub") or charts.compact(row.get("total", values[0] if values else 0)), "cells": cells})
+    return {"headers": data.get("headers", []), "rows": rows}
+
+
+def _tracker(spec, request):
+    data = source(spec.get("data"), request) or []
+    if isinstance(data, dict):
+        data = [data]
+    rows = []
+    for row in data:
+        items = []
+        for item in row.get("items", []):
+            if not isinstance(item, dict):
+                item = {"tone": item}
+            items.append({"tone": item.get("tone", "neutral"), "title": item.get("title", "")})
+        rows.append({"label": row.get("label", ""), "summary": row.get("summary", ""), "items": items})
+    return {"rows": rows}
+
+
 def _note(spec, request):
     return {"text": source(spec.get("text"), request), "tone": spec.get("tone", "info")}
 
@@ -229,6 +287,10 @@ BUILDERS = {
     "models": _model_counts,
     "activity": _activity,
     "heatmap": _heatmap,
+    "contributions": _contributions,
+    "team": _team,
+    "cohort": _cohort,
+    "tracker": _tracker,
     "note": _note,
 }
 
@@ -242,7 +304,7 @@ def build(request, context):
         spec = dict(source(spec, request) or {})
         if not spec:
             continue
-        if spec.get("permission") is not None and not conf.call(spec["permission"], request):
+        if spec.get("permission") is not None and not conf.rule(spec["permission"], request):
             continue
         kind = spec.get("type", "html")
         if kind in ("html", "template"):
@@ -252,6 +314,8 @@ def build(request, context):
             data = {}
         else:
             data = BUILDERS.get(kind, lambda s, r: {})(spec, request)
+            if data is None:
+                continue
         widgets.append(
             {
                 "type": kind,

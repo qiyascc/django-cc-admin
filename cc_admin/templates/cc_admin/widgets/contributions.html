@@ -1,0 +1,8 @@
+{% load i18n cc_admin %}
+<section class="cc-card cc-span-{{ widget.width }} cc-widget-contrib">
+  <header class="cc-card-head">
+    <div>{% if widget.spec.icon %}<span class="cc-card-icon">{% icon widget.spec.icon %}</span>{% endif %}<div><h2>{% firstof widget.spec.title _("Your activity") %}</h2><p>{% blocktranslate count counter=widget.data.total %}{{ counter }} change{% plural %}{{ counter }} changes{% endblocktranslate %} · {% blocktranslate with n=widget.data.stats.current %}{{ n }} day streak{% endblocktranslate %}</p></div></div>
+    {% if widget.data.link %}<a href="{{ widget.data.link }}" class="cc-card-link">{% translate 'Open' %}{% icon "arrow-up-right" %}</a>{% endif %}
+  </header>
+  {% with cal=widget.data base_query=widget.data.base_query %}{% include "cc_admin/activity/calendar.html" %}{% endwith %}
+</section>

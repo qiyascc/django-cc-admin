@@ -2,16 +2,19 @@
 # Qiyas Sadıqov CC
 ###############
 
+import datetime
 import json
 from urllib.parse import quote
 
+from django.contrib.admin.models import LogEntry
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
-from cc_admin import charts, themes
-from shop.models import Customer, Order, Product
+from cc_admin import activity, charts, shortcuts, themes
+from shop.models import Category, Customer, Order, Product
 
 
 class AdminPagesTest(TestCase):
@@ -164,6 +167,148 @@ class AdminPagesTest(TestCase):
     def test_plain_model_admin_still_works(self):
         self.get(reverse("admin:auth_group_add"))
         self.get(reverse("admin:shop_tag_changelist"))
+
+
+class ActivityTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed", orders=80, verbosity=0)
+        cls.admin = get_user_model().objects.get(username="admin")
+        cls.member = get_user_model().objects.get(username="murad")
+
+    def test_team_page_and_day(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("admin:cc_activity"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "cc-person")
+        self.assertContains(response, "Contribution activity")
+        day = LogEntry.objects.filter(user=self.member).latest("action_time").action_time
+        day = timezone.localtime(day).date().isoformat()
+        response = self.client.get(reverse("admin:cc_activity"), {"day": day, "partial": 1})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-activity-feed")
+        self.assertContains(response, "Murad")
+
+    def test_profile(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("admin:cc_activity_user", args=[self.member.pk]), {"year": timezone.localdate().year})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "longest streak")
+
+    def test_staff_only_sees_themselves(self):
+        self.client.force_login(self.member)
+        response = self.client.get(reverse("admin:cc_activity"))
+        self.assertRedirects(response, reverse("admin:cc_activity_user", args=[self.member.pk]))
+        self.assertEqual(self.client.get(reverse("admin:cc_activity_user", args=[self.admin.pk])).status_code, 403)
+        self.assertEqual(self.client.get(reverse("admin:cc_activity_user", args=[self.member.pk])).status_code, 200)
+
+    def test_rules_from_settings(self):
+        self.client.force_login(self.member)
+        with self.settings(CC_ADMIN={"ACTIVITY": {"others": "staff"}}):
+            self.assertEqual(self.client.get(reverse("admin:cc_activity")).status_code, 200)
+            self.assertEqual(self.client.get(reverse("admin:cc_activity_user", args=[self.admin.pk])).status_code, 200)
+        with self.settings(CC_ADMIN={"ACTIVITY": {"view": "superuser"}}):
+            self.assertEqual(self.client.get(reverse("admin:cc_activity_user", args=[self.member.pk])).status_code, 403)
+        with self.settings(CC_ADMIN={"ACTIVITY": False}):
+            self.client.force_login(self.admin)
+            self.assertEqual(self.client.get(reverse("admin:cc_activity")).status_code, 403)
+            self.assertNotContains(self.client.get(reverse("admin:index")), "cc/activity/")
+
+    def test_streaks(self):
+        today = datetime.date(2026, 3, 10)
+        counts = {today: 2, today - datetime.timedelta(days=1): 1, today - datetime.timedelta(days=5): 4}
+        stats = activity.streaks(counts, today)
+        self.assertEqual((stats["current"], stats["longest"], stats["busiest_count"]), (2, 2, 4))
+
+
+class FeaturesTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed", orders=60, verbosity=0)
+        cls.user = get_user_model().objects.get(username="admin")
+
+    def setUp(self):
+        self.client.force_login(self.user)
+
+    def test_shortcut_settings(self):
+        self.assertEqual(shortcuts.normalize(["Ctrl+K", "g  d", "cmd+shift+Enter"]), ["mod+k", "g d", "mod+shift+enter"])
+        settings = {"SHORTCUTS": {"keys": {"filters": "shift+f", "theme": None}, "custom": [{"keys": "g x", "title": "Secret", "link": "/x/", "permission": "superuser"}]}}
+        with self.settings(CC_ADMIN=settings):
+            response = self.client.get(reverse("admin:index"))
+            config = json.loads(response.context["cc"]["client"])["shortcuts"]
+        found = {a["id"]: a for a in config["actions"]}
+        self.assertEqual(found["filters"]["keys"], ["shift+f"])
+        self.assertEqual(found["theme"]["keys"], [])
+        self.assertEqual(found["custom_0"]["url"], "/x/")
+        with self.settings(CC_ADMIN={"SHORTCUTS": False}):
+            response = self.client.get(reverse("admin:index"))
+            self.assertNotContains(response, "data-keys-body")
+
+    def test_appearance_cookie_is_sanitised(self):
+        prefs = {"theme": "aurora", "accent": "#0e8a8a", "font": "Manrope", "size": "16", "radius": "round"}
+        self.client.cookies["cc_admin_prefs"] = quote(json.dumps(prefs))
+        response = self.client.get(reverse("admin:index"))
+        self.assertContains(response, "--cc-accent:#0e8a8a")
+        self.assertContains(response, '--cc-font:"Manrope"')
+        self.assertContains(response, "--cc-size:16px")
+        bad = {"accent": "red;}</style><script>", "font": "Comic", "size": "99"}
+        self.client.cookies["cc_admin_prefs"] = quote(json.dumps(bad))
+        response = self.client.get(reverse("admin:index"))
+        self.assertNotContains(response, "</style><script>")
+        self.assertContains(response, '<style id="cc-user-tokens"></style>')
+
+    @override_settings(CC_ADMIN={"COLORS": {"accent": "#e11d48", "sidebar": "#111111", "chart": ["#111", "#222"], "dark": {"background": "#000"}}, "FONTS": {"body": "DM Sans", "size": 15}, "RADIUS": "sharp"})
+    def test_colors_fonts_radius(self):
+        response = self.get(reverse("admin:index"))
+        for text in ("--cc-accent:#e11d48", "--cc-side-bg:#111111", "--cc-chart-2:#222", "--cc-bg:#000", '--cc-font:"DM Sans"', "--cc-size:15px", "--cc-radius:0px"):
+            self.assertContains(response, text)
+
+    def get(self, url, **kwargs):
+        response = self.client.get(url, **kwargs)
+        self.assertEqual(response.status_code, 200, url)
+        return response
+
+    def test_sections_and_sorting(self):
+        response = self.get(reverse("admin:shop_order_changelist"))
+        self.assertContains(response, "data-section-row")
+        self.assertContains(response, "Line total")
+        response = self.get(reverse("admin:shop_category_changelist"))
+        self.assertContains(response, "data-row-drag")
+        pks = [str(pk) for pk in Category.objects.order_by("position").values_list("pk", flat=True)]
+        response = self.client.post(reverse("admin:shop_category_cc_sort"), {"pk": list(reversed(pks))})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([str(pk) for pk in Category.objects.order_by("position").values_list("pk", flat=True)], list(reversed(pks)))
+        self.assertEqual(self.client.get(reverse("admin:shop_category_cc_sort")).status_code, 403)
+
+    def test_per_page_cookie(self):
+        self.client.cookies["cc_admin_per"] = quote(json.dumps({"shop.order": 50}))
+        response = self.get(reverse("admin:shop_order_changelist"))
+        self.assertEqual(response.context["cl"].list_per_page, 50)
+        self.assertContains(response, "data-per-page")
+        self.client.cookies["cc_admin_per"] = quote(json.dumps({"shop.order": 7}))
+        self.assertEqual(self.get(reverse("admin:shop_order_changelist")).context["cl"].list_per_page, 100)
+
+    def test_widgets_and_forms(self):
+        response = self.get(reverse("admin:shop_product_add"))
+        for text in ("data-cc-rich", "cc-switch", "data-cc-segmented", "data-cc-code", "data-cancel", "data-back-link"):
+            self.assertContains(response, text)
+        self.assertContains(self.get(reverse("admin:shop_category_add")), "data-cc-color")
+        self.assertContains(self.get(reverse("admin:shop_customer_change", args=[Customer.objects.first().pk])), "Latest orders")
+
+    def test_new_widgets_filters_and_pages(self):
+        response = self.get(reverse("admin:index"))
+        for text in ("cc-cohort", "cc-tracker-bar", "cc-team-list", "cc-widget-contrib"):
+            self.assertContains(response, text)
+        response = self.get(reverse("admin:shop_order_changelist") + "?total__gte=10&channel__in=web")
+        self.assertContains(response, "data-slider")
+        self.assertEqual(response.context["cl"].result_count, Order.objects.filter(total__gte=10, channel="web").count())
+        self.assertContains(self.get(reverse("admin:shop_order_reports")), "Revenue by channel")
+        self.assertContains(self.get(reverse("admin:shop_product_changelist")), "file-chart-column")
+
+    def test_palette_commands(self):
+        response = self.get(reverse("admin:index"))
+        config = json.loads(response.context["cc"]["client"])
+        self.assertTrue(any(c["title"] == "Weekly reports" for c in config["commands"]))
 
 
 class ChartsTest(TestCase):

@@ -12,10 +12,12 @@ class Category(models.Model):
     name = models.CharField(max_length=80)
     slug = models.SlugField(unique=True)
     color = models.CharField(max_length=20, default="accent")
+    hex_color = models.CharField("colour", max_length=9, default="#5b5bd6")
     description = models.TextField(blank=True)
+    position = models.PositiveIntegerField(default=0)
 
     class Meta:
-        ordering = ["name"]
+        ordering = ["position", "name"]
         verbose_name_plural = "categories"
 
     def __str__(self):
@@ -51,6 +53,7 @@ class Product(models.Model):
     has_discount = models.BooleanField(default=False)
     discount_percent = models.PositiveSmallIntegerField(default=0)
     description = models.TextField(blank=True)
+    specs = models.JSONField(default=dict, blank=True)
     launched_on = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
 

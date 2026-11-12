@@ -5,10 +5,18 @@
       {% if cc.logo %}
         <img src="{{ cc.logo.light }}" class="cc-logo cc-only-light" alt="{{ cc.header }}"><img src="{{ cc.logo.dark }}" class="cc-logo cc-only-dark" alt="{{ cc.header }}">
       {% else %}
-        <span class="cc-brand-mark">{% if cc.icon %}<img src="{{ cc.icon.light }}" class="cc-only-light" alt=""><img src="{{ cc.icon.dark }}" class="cc-only-dark" alt="">{% else %}{{ cc.header|cc_initials }}{% endif %}</span>
+        <span class="cc-brand-mark">{% if cc.icon %}<img src="{{ cc.icon.light }}" class="cc-only-light" alt=""><img src="{{ cc.icon.dark }}" class="cc-only-dark" alt="">{% elif cc.symbol %}{% icon cc.symbol %}{% else %}{{ cc.header|cc_initials }}{% endif %}</span>
         <span class="cc-brand-text"><b>{{ cc.header }}</b>{% if cc.subheader %}<small>{{ cc.subheader }}</small>{% endif %}</span>
       {% endif %}
     </a>
+    {% if cc.dropdown %}
+      <div class="cc-dropdown cc-site-menu" data-menu>
+        <button type="button" class="cc-icon-btn" data-menu-toggle aria-label="{% translate 'Switch site' %}">{% icon "chevrons-up-down" %}</button>
+        <div class="cc-menu" role="menu">
+          {% for link in cc.dropdown %}<a class="cc-menu-item" href="{{ link.url }}" role="menuitem"{% if link.new_tab %} target="_blank" rel="noopener"{% endif %}>{% icon link.icon %}<span>{{ link.title }}</span></a>{% endfor %}
+        </div>
+      </div>
+    {% endif %}
     <button type="button" class="cc-icon-btn cc-side-close" data-side-close aria-label="{% translate 'Close menu' %}">{% icon "x" %}</button>
   </div>
   {% if cc.sidebar_search %}
@@ -19,6 +27,7 @@
     <div class="cc-nav-group cc-nav-root">
       <ul>
         <li><a class="cc-nav-item{% if request.path == home_url %} is-active{% endif %}" href="{{ home_url }}" data-nav-item title="{% translate 'Dashboard' %}">{% icon "layout-dashboard" %}<span>{% translate 'Dashboard' %}</span></a></li>
+        {% if cc.activity_menu %}{% firstof cc.activity_team_url cc.activity_url as activity_link %}<li><a class="cc-nav-item{% if '/cc/activity/' in request.path %} is-active{% endif %}" href="{{ activity_link }}" data-nav-item title="{% translate 'Activity' %}">{% icon "activity" %}<span>{% translate 'Activity' %}</span></a></li>{% endif %}
       </ul>
     </div>
     {% if cc.pinned %}

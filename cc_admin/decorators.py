@@ -58,6 +58,31 @@ def render_header(value):
     )
 
 
+def render_image(value):
+    url = getattr(value, "url", value) if value else ""
+    if not url:
+        return format_html('<span class="cc-muted">—</span>')
+    return format_html('<img class="cc-thumb" src="{}" alt="" loading="lazy">', url)
+
+
+def render_progress(value):
+    if isinstance(value, (list, tuple)) and len(value) == 2:
+        done, total = value
+    else:
+        done, total = value, 100
+    try:
+        share = max(0.0, min(100.0, float(done or 0) / float(total or 1) * 100))
+    except (TypeError, ValueError):
+        share = 0.0
+    tone = "success" if share >= 100 else "danger" if share < 15 else "accent"
+    return format_html(
+        '<span class="cc-progress-cell cc-tone-{}"><span class="cc-progress-bar"><i style="width:{}%"></i></span><em>{}%</em></span>',
+        tone,
+        f"{share:.1f}",
+        f"{share:.0f}",
+    )
+
+
 def display(
     function=None,
     *,
@@ -70,9 +95,11 @@ def display(
     copy=False,
     mono=False,
     tags=False,
+    image=False,
+    progress=False,
 ):
     def decorator(func):
-        if label is None and not header and not copy and not mono and not tags:
+        if label is None and not header and not copy and not mono and not tags and not image and not progress:
             wrapped = func
         else:
 
@@ -81,6 +108,10 @@ def display(
                 value = func(*args, **kwargs)
                 if header:
                     return render_header(value)
+                if image:
+                    return render_image(value)
+                if progress:
+                    return render_progress(value)
                 if label is not None:
                     return render_label(value, label)
                 if tags:

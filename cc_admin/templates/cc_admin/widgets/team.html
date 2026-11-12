@@ -1,0 +1,20 @@
+{% load i18n cc_admin %}
+<section class="cc-card cc-span-{{ widget.width }} cc-widget-team">
+  <header class="cc-card-head">
+    <div>{% if widget.spec.icon %}<span class="cc-card-icon">{% icon widget.spec.icon %}</span>{% endif %}<div><h2>{% firstof widget.spec.title _("Team") %}</h2><p>{% blocktranslate count counter=widget.data.days %}Last {{ counter }} day{% plural %}Last {{ counter }} days{% endblocktranslate %}</p></div></div>
+    {% if widget.data.link %}<a href="{{ widget.data.link }}" class="cc-card-link">{% translate 'All activity' %}{% icon "arrow-up-right" %}</a>{% endif %}
+  </header>
+  <ul class="cc-team-list">
+    {% for p in widget.data.people %}
+      <li>
+        <a href="{% firstof p.url '#' %}">
+          <span class="cc-avatar" data-seed="{{ p.username }}">{{ p.name|cc_initials }}</span>
+          <span class="cc-team-name"><b>{{ p.name }}</b><span class="cc-feed-bar"><i style="width:{{ p.bar }}%"></i></span></span>
+          <em>{{ p.count|cc_compact }}</em>
+        </a>
+      </li>
+    {% empty %}
+      <li class="cc-muted cc-list-empty">{% translate 'Nobody changed anything yet.' %}</li>
+    {% endfor %}
+  </ul>
+</section>

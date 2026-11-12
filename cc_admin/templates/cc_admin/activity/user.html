@@ -1,0 +1,49 @@
+{% extends "admin/base_site.html" %}
+{% load i18n cc_admin %}
+
+{% block bodyclass %}{{ block.super }} cc-activity-page{% endblock %}
+{% block breadcrumbs %}
+<ol class="breadcrumbs">
+  <li><a href="{% url 'admin:index' %}">{% translate 'Home' %}</a></li>
+  {% if team_url %}<li><a href="{{ team_url }}">{% translate 'Activity' %}</a></li>{% else %}<li>{% translate 'Activity' %}</li>{% endif %}
+  <li aria-current="page">{{ subject.name }}</li>
+</ol>
+{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div id="content-main" class="cc-profile">
+  <aside class="cc-profile-side">
+    <span class="cc-avatar cc-avatar-xl" data-seed="{{ subject.username }}">{{ subject.name|cc_initials }}</span>
+    <h1>{{ subject.name }}</h1>
+    <p class="cc-profile-handle">{{ subject.username }}{% if is_self %} · {% translate 'you' %}{% endif %}</p>
+    <div class="cc-profile-roles">
+      {% if subject.superuser %}<span class="cc-badge cc-tone-accent">{% translate 'Superuser' %}</span>{% elif subject.staff %}<span class="cc-badge cc-tone-info">{% translate 'Staff' %}</span>{% endif %}
+      {% if not subject.active %}<span class="cc-badge cc-tone-neutral">{% translate 'Inactive' %}</span>{% endif %}
+    </div>
+    <dl class="cc-profile-facts">
+      {% if subject.email and activity.details %}<div>{% icon "mail" %}<dd>{{ subject.email }}</dd></div>{% endif %}
+      {% if subject.joined %}<div>{% icon "calendar" %}<dd>{% blocktranslate with date=subject.joined|date:'M j, Y' %}Joined {{ date }}{% endblocktranslate %}</dd></div>{% endif %}
+      {% if subject.last_login %}<div>{% icon "log-in" %}<dd>{% blocktranslate with ago=subject.last_login|timesince %}Last seen {{ ago }} ago{% endblocktranslate %}</dd></div>{% endif %}
+    </dl>
+    <div class="cc-profile-stats">
+      <div><b>{{ activity.total|cc_compact }}</b><span>{% translate 'changes' %}</span></div>
+      <div><b>{{ activity.stats.active_days }}</b><span>{% translate 'active days' %}</span></div>
+      <div><b>{{ activity.stats.longest }}</b><span>{% translate 'longest streak' %}</span></div>
+      <div><b>{{ activity.stats.current }}</b><span>{% translate 'current streak' %}</span></div>
+    </div>
+    {% include "cc_admin/activity/split.html" %}
+  </aside>
+  <div class="cc-profile-main">
+    <section class="cc-card cc-contrib">
+      <header class="cc-contrib-head">
+        <h2>{% if activity.year %}{% blocktranslate count counter=activity.total with year=activity.year %}{{ counter }} change in {{ year }}{% plural %}{{ counter }} changes in {{ year }}{% endblocktranslate %}{% else %}{% blocktranslate count counter=activity.total %}{{ counter }} change in the last year{% plural %}{{ counter }} changes in the last year{% endblocktranslate %}{% endif %}</h2>
+        {% include "cc_admin/activity/years.html" %}
+      </header>
+      {% with cal=activity.calendar %}{% include "cc_admin/activity/calendar.html" %}{% endwith %}
+      {% if activity.stats.busiest %}<p class="cc-contrib-note">{% blocktranslate with day=activity.stats.busiest|date:'l, F j' n=activity.stats.busiest_count %}Busiest day was {{ day }} with {{ n }} changes.{% endblocktranslate %}</p>{% endif %}
+    </section>
+    {% include "cc_admin/activity/feed.html" %}
+  </div>
+</div>
+{% endblock %}

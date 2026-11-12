@@ -1,6 +1,9 @@
 {% load admin_list i18n cc_admin %}
 <nav class="cc-pager paginator" aria-label="{% translate 'Pagination' %}">
   <span class="cc-pager-count">{% cc_page_info cl as info %}{% if info.start %}{{ info.start }}–{{ info.end }} {% translate 'of' %} {% endif %}{{ cl.result_count }} {% if cl.result_count == 1 %}{{ cl.opts.verbose_name }}{% else %}{{ cl.opts.verbose_name_plural }}{% endif %}{% if show_all_url %} · <a href="{{ show_all_url }}" class="showall">{% translate 'Show all' %}</a>{% endif %}</span>
+  {% cc_per_page cl as per %}{% if per.options|length > 1 and not cl.show_all %}
+    <label class="cc-per-page"><span>{% translate 'Per page' %}</span><select data-per-page="{{ per.key }}">{% for n in per.options %}<option value="{{ n }}"{% if n == cl.list_per_page %} selected{% endif %}>{{ n }}</option>{% endfor %}</select></label>
+  {% endif %}
   {% if pagination_required %}
     <div class="cc-pages">
       {% if info.prev %}<a href="{{ info.prev }}" class="cc-pg" data-page-prev aria-label="{% translate 'Previous' %}">{% icon "chevron-left" %}</a>{% else %}<span class="cc-pg is-off">{% icon "chevron-left" %}</span>{% endif %}

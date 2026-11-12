@@ -7,6 +7,10 @@
       {% url opts|admin_urlname:'delete' original.pk|admin_urlquote as delete_url %}
       <a role="button" href="{% add_preserved_filters delete_url %}" class="cc-btn cc-btn-danger-ghost deletelink">{% icon "trash" %}<span>{% translate "Delete" %}</span></a>
     {% endif %}
+    {% if cc_show_cancel and not is_popup and not show_close %}
+      {% url opts|admin_urlname:'changelist' as changelist_url %}
+      <a role="button" href="{% add_preserved_filters changelist_url %}" class="cc-btn cc-btn-ghost" data-cancel>{% translate 'Cancel' %}</a>
+    {% endif %}
     {% if show_close %}
       {% url opts|admin_urlname:'changelist' as changelist_url %}
       <a role="button" href="{% add_preserved_filters changelist_url %}" class="cc-btn closelink">{% translate 'Close' %}</a>
@@ -18,7 +22,7 @@
     {% if show_save_as_new %}<button type="submit" name="_saveasnew" class="cc-btn">{% translate 'Save as new' %}</button>{% endif %}
     {% if show_save_and_add_another %}<button type="submit" name="_addanother" class="cc-btn">{% translate 'Save and add another' %}</button>{% endif %}
     {% if show_save_and_continue %}<button type="submit" name="_continue" class="cc-btn" data-save-continue>{% if can_change %}{% translate 'Save and continue editing' %}{% else %}{% translate 'Save and view' %}{% endif %}</button>{% endif %}
-    {% if show_save %}<button type="submit" name="_save" class="cc-btn cc-btn-primary default" data-save>{% icon "check" %}<span>{% translate 'Save' %}</span><kbd data-mod>⌘↵</kbd></button>{% endif %}
+    {% if show_save %}<button type="submit" name="_save" class="cc-btn cc-btn-primary default" data-save>{% icon "check" %}<span>{% translate 'Save' %}</span><kbd data-shortcut="save"></kbd></button>{% endif %}
   </div>
 {% endblock %}
 </div>

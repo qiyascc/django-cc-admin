@@ -75,7 +75,7 @@ def _allowed(item, request):
     permission = item.get("permission")
     if permission is None:
         return True
-    return bool(conf.call(permission, request))
+    return conf.rule(permission, request)
 
 
 def _badge(item, request):

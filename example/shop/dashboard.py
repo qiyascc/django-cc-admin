@@ -5,7 +5,7 @@
 import datetime
 from decimal import Decimal
 
-from django.db.models import Count, F, Sum
+from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import TruncDate, TruncMonth
 from django.urls import reverse
 from django.utils import timezone
@@ -202,3 +202,49 @@ def low_stock(request):
 
 def pending_orders(request):
     return Order.objects.filter(status="pending").count()
+
+
+def retention(request):
+    today = timezone.localdate().replace(day=1)
+    months = []
+    for back in range(5, -1, -1):
+        year, month = today.year, today.month - back
+        while month < 1:
+            month += 12
+            year -= 1
+        months.append(datetime.date(year, month, 1))
+    index = {m: i for i, m in enumerate(months)}
+    joined = {}
+    for pk, when in Customer.objects.filter(joined_at__date__gte=months[0]).values_list("pk", "joined_at"):
+        joined[pk] = index.get(timezone.localtime(when).date().replace(day=1))
+    active = {}
+    for customer, when in Order.objects.filter(customer_id__in=list(joined), created_at__date__gte=months[0]).values_list("customer_id", "created_at"):
+        start = joined.get(customer)
+        month = index.get(timezone.localtime(when).date().replace(day=1))
+        if start is None or month is None or month < start:
+            continue
+        active.setdefault((start, month - start), set()).add(customer)
+    rows = []
+    for i, month in enumerate(months):
+        size = sum(1 for v in joined.values() if v == i)
+        if not size:
+            continue
+        values = [len(active.get((i, k), ())) if i + k < len(months) else None for k in range(len(months))]
+        rows.append({"label": month.strftime("%b %Y"), "sub": f"{size} customers", "total": size, "values": values})
+    return {"headers": ["Month 0"] + [f"+{k}" for k in range(1, len(months))], "rows": rows}
+
+
+def fulfilment(request):
+    days = 60
+    start = timezone.localdate() - datetime.timedelta(days=days - 1)
+    rows = Order.objects.filter(created_at__date__gte=start).annotate(day=TruncDate("created_at")).values("day").annotate(n=Count("id"), late=Count("id", filter=~Q(status__in=["delivered", "shipped", "paid"])))
+    found = {r["day"]: r for r in rows}
+    items = []
+    for i in range(days):
+        day = start + datetime.timedelta(days=i)
+        row = found.get(day, {"n": 0, "late": 0})
+        share = row["late"] / row["n"] if row["n"] else 0
+        tone = "neutral" if not row["n"] else "success" if share < 0.25 else "warning" if share < 0.6 else "danger"
+        items.append({"tone": tone, "title": f"{day:%a %b %d} · {row['n']} orders, {row['late']} open"})
+    shipped = sum(1 for item in items if item["tone"] == "success")
+    return [{"label": "Orders shipped on time", "summary": f"{shipped} of {days} days", "items": items}]

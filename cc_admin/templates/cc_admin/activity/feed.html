@@ -1,0 +1,62 @@
+{% load i18n cc_admin %}<div class="cc-feed" data-activity-feed>
+{% if activity.day %}
+  <div class="cc-feed-head">
+    <h2>{% blocktranslate with day=activity.day|date:'l, F j, Y' %}Activity on {{ day }}{% endblocktranslate %}</h2>
+    <a href="{{ base_query }}" class="cc-btn cc-btn-sm" data-day-clear>{% icon "x" %}<span>{% translate 'Show all' %}</span></a>
+  </div>
+  {% for group in activity.feed %}
+    <details class="cc-card cc-feed-group" open>
+      <summary>
+        {% if group.user %}
+          <span class="cc-avatar" data-seed="{{ group.user.username }}">{{ group.user.name|cc_initials }}</span>
+          <span class="cc-feed-title">{% if group.user.url %}<a href="{{ group.user.url }}?day={{ activity.day|date:'Y-m-d' }}">{{ group.user.name }}</a>{% else %}<b>{{ group.user.name }}</b>{% endif %}<small>{% for p in group.parts %}{{ p.count }} {{ p.verb|cc_verb }}{% if not forloop.last %}, {% endif %}{% endfor %} · {% blocktranslate count counter=group.model_count %}{{ counter }} model{% plural %}{{ counter }} models{% endblocktranslate %}</small></span>
+        {% else %}
+          <span class="cc-feed-icon">{% icon group.model.icon %}</span>
+          <span class="cc-feed-title">{% if group.model.list_url %}<a href="{{ group.model.list_url }}">{{ group.model.label }}</a>{% else %}<b>{{ group.model.label }}</b>{% endif %}<small>{% for p in group.parts %}{{ p.count }} {{ p.verb|cc_verb }}{% if not forloop.last %}, {% endif %}{% endfor %}</small></span>
+        {% endif %}
+        {% icon "chevron-down" "cc-caret" %}
+      </summary>
+      {% if activity.details %}
+      <ol class="cc-feed-items">
+        {% for item in group.items %}
+          <li class="cc-tl-{{ item.verb }}">
+            <span class="cc-tl-dot">{% icon item.icon %}</span>
+            <div>
+              <p>{{ item.verb|cc_verb|capfirst }}{% if group.user %} {{ item.model.single|lower }}{% endif %} {% if item.url %}<a href="{{ item.url }}">{{ item.repr }}</a>{% else %}<span class="cc-feed-repr">{{ item.repr }}</span>{% endif %}</p>
+              {% if item.message %}<small>{{ item.message }}</small>{% endif %}
+            </div>
+            <time datetime="{{ item.time|date:'c' }}">{{ item.time|time:'H:i' }}</time>
+          </li>
+        {% endfor %}
+      </ol>
+      {% endif %}
+    </details>
+  {% empty %}
+    <div class="cc-card cc-empty">{% icon "calendar" %}<p>{% translate 'Nothing was changed on this day.' %}</p></div>
+  {% endfor %}
+{% else %}
+  <div class="cc-feed-head"><h2>{% translate 'Contribution activity' %}</h2></div>
+  {% for month in activity.months %}
+    <section class="cc-feed-month"{% if forloop.counter > 4 %} hidden data-feed-more{% endif %}>
+      <h3><span>{{ month.period|date:'F' }}</span> {{ month.period|date:'Y' }}</h3>
+      {% for line in month.lines %}
+        <details class="cc-feed-line cc-tl-{{ line.verb }}"{% if forloop.parentloop.first and forloop.first %} open{% endif %}>
+          <summary><span class="cc-tl-dot">{% icon line.icon %}</span><span>{{ line.text }}</span>{% icon "chevron-down" "cc-caret" %}</summary>
+          <ul class="cc-feed-models">
+            {% for m in line.models %}
+              <li>
+                <span class="cc-feed-model">{% icon m.icon %}{% if m.list_url %}<a href="{{ m.list_url }}">{{ m.label }}</a>{% else %}{{ m.label }}{% endif %}</span>
+                <span class="cc-feed-bar"><i style="width:{{ m.share }}%"></i></span>
+                <em>{% blocktranslate count counter=m.count %}{{ counter }} time{% plural %}{{ counter }} times{% endblocktranslate %}</em>
+              </li>
+            {% endfor %}
+          </ul>
+        </details>
+      {% endfor %}
+    </section>
+    {% if forloop.last and forloop.counter > 4 %}<button type="button" class="cc-btn cc-feed-more" data-feed-more-btn>{% translate 'Show older activity' %}</button>{% endif %}
+  {% empty %}
+    <div class="cc-card cc-empty">{% icon "activity" %}<p>{% translate 'No activity in this period.' %}</p></div>
+  {% endfor %}
+{% endif %}
+</div>

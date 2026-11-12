@@ -1,10 +1,13 @@
 {% load i18n cc_admin %}
 {% if result_hidden_fields %}<div class="hiddenfields">{% for item in result_hidden_fields %}{{ item }}{% endfor %}</div>{% endif %}
+{% cc_list_flags cl as flags %}
 {% if results %}
 <div class="results cc-table-wrap" data-results>
 <table id="result_list" class="cc-table cc-results">
 <thead>
 <tr>
+{% if flags.sortable %}<th scope="col" class="cc-drag-col" aria-label="{% translate 'Order' %}"></th>{% endif %}
+{% if flags.sections %}<th scope="col" class="cc-expand-col" aria-label="{% translate 'Details' %}"></th>{% endif %}
 {% for header in result_headers %}
 <th scope="col"{{ header.class_attrib }} data-col="{{ forloop.counter0 }}">
   {% if header.sortable %}
@@ -21,7 +24,9 @@
 <tbody>
 {% for result in results %}
 {% if result.form and result.form.non_field_errors %}<tr class="cc-row-error"><td colspan="{{ result|length }}">{{ result.form.non_field_errors }}</td></tr>{% endif %}
-<tr data-row>{% for item in result %}{{ item }}{% endfor %}</tr>
+{% if flags.sortable or flags.sections %}{% cc_row_meta cl forloop.counter0 flags.sortable as meta %}{% endif %}
+<tr data-row{% if meta %} data-pk="{{ meta.pk }}"{% endif %}>{% if flags.sortable %}<td class="cc-drag-cell"><span class="cc-drag-handle" data-row-drag title="{% translate 'Drag to reorder' %}">{% icon "grip-vertical" %}</span></td>{% endif %}{% if flags.sections %}<td class="cc-expand-cell"><button type="button" class="cc-icon-btn" data-expand aria-expanded="false" aria-label="{% translate 'Show details' %}">{% icon "chevron-right" %}</button></td>{% endif %}{% for item in result %}{{ item }}{% endfor %}</tr>
+{% if flags.sections %}<tr class="cc-section-row" data-section-row hidden><td colspan="{{ result|length|cc_add:meta.extra }}"><div class="cc-sections">{% for html in meta.sections %}{{ html }}{% endfor %}</div></td></tr>{% endif %}
 {% endfor %}
 </tbody>
 </table>

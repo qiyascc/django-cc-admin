@@ -14,7 +14,7 @@
   {% cc_media media.js %}
 {% endblock %}
 
-{% block bodyclass %}{{ block.super }} app-{{ opts.app_label }} model-{{ opts.model_name }} change-list{% endblock %}
+{% block bodyclass %}{{ block.super }} app-{{ opts.app_label }} model-{{ opts.model_name }} change-list{% if cc_model_admin.list_fullwidth %} cc-fullwidth{% endif %}{% endblock %}
 
 {% if not is_popup %}
 {% block breadcrumbs %}
@@ -41,11 +41,9 @@
 {% block object-tools %}
 <div class="cc-tools object-tools">
   {% block object-tools-items %}
-    {% for action in cc_list_actions %}
-      <button type="submit" form="cc-action-form" formaction="{{ action.url }}" class="cc-btn cc-btn-{{ action.variant }}"{% if action.confirm %} data-confirm="{{ action.confirm }}"{% endif %}{% if action.new_tab %} formtarget="_blank"{% endif %}>{% if action.icon %}{% icon action.icon %}{% endif %}<span>{{ action.label }}</span></button>
-    {% endfor %}
+    {% include "cc_admin/action_buttons.html" with actions=cc_list_actions %}
     {% if cc_export and not is_popup %}
-      <div class="cc-dropdown" data-menu>
+      <div class="cc-dropdown" data-menu data-export-menu>
         <button type="button" class="cc-btn" data-menu-toggle>{% icon "download" %}<span>{% translate 'Export' %}</span>{% icon "chevron-down" "cc-caret" %}</button>
         <div class="cc-menu cc-menu-right" role="menu">
           <a class="cc-menu-item" href="{{ cc_export_url }}{{ cl.get_query_string|cc_qs_join:'_format=csv' }}">{% icon "file-text" %}<span>CSV</span><em>{% translate 'current view' %}</em></a>
@@ -60,11 +58,12 @@
 
 {% block content %}
 <div id="content-main">
+  {% if cc_model_admin.change_list_before_template %}{% include cc_model_admin.change_list_before_template %}{% endif %}
   {% if cl.formset and cl.formset.errors %}
     <p class="errornote">{% blocktranslate count counter=cl.formset.total_error_count %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktranslate %}</p>
     {{ cl.formset.non_form_errors }}
   {% endif %}
-  <div class="module cc-changelist{% if cl.has_filters %} filtered{% endif %}" id="changelist" data-model="{{ cl.opts.app_label }}.{{ cl.opts.model_name }}">
+  <div class="module cc-changelist{% if cl.has_filters %} filtered{% endif %}{% if cc_model_admin.list_disable_select_all %} cc-no-select-all{% endif %}" id="changelist" data-model="{{ cl.opts.app_label }}.{{ cl.opts.model_name }}"{% if cc_sortable %} data-sort-url="{{ cc_sort_url }}"{% endif %}{% if cc_model_admin.list_horizontal_scrollbar_top %} data-top-scroll{% endif %}>
     <div class="cc-list-toolbar">
       {% block search %}{% search_form cl %}{% endblock %}
       <div class="cc-list-tools">
@@ -99,6 +98,7 @@
       {% endblock %}
     </form>
   </div>
+  {% if cc_model_admin.change_list_after_template %}{% include cc_model_admin.change_list_after_template %}{% endif %}
   {% block filters %}
     {% if cl.has_filters %}
       <dialog class="cc-drawer" data-drawer="filters" id="changelist-filter" aria-labelledby="changelist-filter-header">

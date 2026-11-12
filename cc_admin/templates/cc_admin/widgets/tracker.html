@@ -1,0 +1,10 @@
+{% load cc_admin %}
+<section class="cc-card cc-span-{{ widget.width }} cc-widget-tracker">
+  {% include "cc_admin/widgets/_head.html" %}
+  {% for row in widget.data.rows %}
+    <div class="cc-tracker">
+      {% if row.label or row.summary %}<div class="cc-tracker-head"><b>{{ row.label }}</b><span>{{ row.summary }}</span></div>{% endif %}
+      <div class="cc-tracker-bar">{% for item in row.items %}<i class="cc-tone-{{ item.tone }}"{% if item.title %} title="{{ item.title }}"{% endif %}></i>{% endfor %}</div>
+    </div>
+  {% endfor %}
+</section>

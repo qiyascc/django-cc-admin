@@ -1,0 +1,4 @@
+{% load i18n cc_admin %}{% if activity.total %}<div class="cc-split">
+  <div class="cc-split-bar">{% for verb in "added,changed,deleted"|cc_split %}{% with n=activity.split|cc_get:verb %}{% if n %}<i class="cc-tl-{{ verb }}" style="flex:{{ n }}"></i>{% endif %}{% endwith %}{% endfor %}</div>
+  <ul>{% for verb in "added,changed,deleted"|cc_split %}<li class="cc-tl-{{ verb }}"><i></i>{{ verb|cc_verb|capfirst }}<b>{{ activity.split|cc_get:verb|default:0 }}</b></li>{% endfor %}</ul>
+</div>{% endif %}

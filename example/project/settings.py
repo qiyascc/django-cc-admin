@@ -64,8 +64,31 @@ CC_ADMIN = {
     "SITE_SUBHEADER": "Store admin",
     "SITE_TITLE": "Northwind admin",
     "SITE_URL": "/",
+    "SITE_SYMBOL": "store",
+    "SITE_DROPDOWN": [
+        {"title": "Northwind store", "icon": "store", "link": "/"},
+        {"title": "Warehouse admin", "icon": "warehouse", "link": "#"},
+        {"title": "Status page", "icon": "activity", "link": "#"},
+    ],
     "THEME": os.environ.get("CC_THEME", "aurora"),
     "ENVIRONMENT": ("Staging", "warning"),
+    "ENVIRONMENT_TITLE_PREFIX": True,
+    "FORMS": {"switches": True},
+    "ACTIVITY": {"view": "staff", "others": "superuser"},
+    "SHORTCUTS": {
+        "keys": {"delete": "mod+shift+backspace"},
+        "custom": [
+            {"keys": "g o", "title": "Open orders", "link": "admin:shop_order_changelist"},
+            {"keys": "g p", "title": "Open products", "link": "admin:shop_product_changelist"},
+            {"keys": "g r", "title": "Reports", "link": "admin:shop_order_reports"},
+        ],
+    },
+    "COMMAND_PALETTE": {
+        "commands": [
+            {"title": "Weekly reports", "subtitle": "Revenue by channel", "icon": "chart-pie", "link": "admin:shop_order_reports"},
+            {"title": "Pending orders", "subtitle": "Orders waiting for payment", "icon": "clock", "link": "/admin/shop/order/?status__in=pending"},
+        ],
+    },
     "SIDEBAR": {
         "icons": {"shop.category": "folder-tree", "shop.tag": "tag", "shop.note": "sticky-note"},
         "navigation": [
@@ -76,6 +99,7 @@ CC_ADMIN = {
                     {"title": "Products", "icon": "package", "link": "admin:shop_product_changelist", "badge": "shop.dashboard.low_stock", "badge_variant": "danger"},
                     {"title": "Customers", "icon": "users", "link": "admin:shop_customer_changelist"},
                     {"title": "Categories", "icon": "folder-tree", "link": "admin:shop_category_changelist"},
+                    {"title": "Reports", "icon": "chart-pie", "link": "admin:shop_order_reports"},
                 ],
             },
         ],
@@ -105,6 +129,10 @@ CC_ADMIN = {
             {"type": "chart", "kind": "stacked-bar", "title": "Orders by channel", "subtitle": "Last six months", "data": "shop.dashboard.channels", "width": 7, "height": 220},
             {"type": "progress", "title": "Revenue by category", "items": "shop.dashboard.category_share", "width": 5},
             {"type": "heatmap", "title": "Order activity", "subtitle": "Orders per day, last twelve months", "data": "shop.dashboard.order_days", "unit": "orders", "weeks": 52, "width": 12},
+            {"type": "contributions", "title": "Your activity", "icon": "activity", "weeks": 30, "width": 8},
+            {"type": "team", "title": "Team", "icon": "users", "days": 30, "width": 4},
+            {"type": "cohort", "title": "Customer retention", "subtitle": "Share of new customers who ordered again, by signup month", "data": "shop.dashboard.retention", "width": 12},
+            {"type": "tracker", "title": "Fulfilment", "subtitle": "Last 60 days", "data": "shop.dashboard.fulfilment", "width": 12},
             {"type": "activity", "title": "Recent changes", "width": 6, "limit": 6},
             {"type": "recent", "title": "Recently opened", "width": 6},
         ],

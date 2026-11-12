@@ -1,0 +1,14 @@
+{% load i18n %}<div class="cc-section">
+  {% if title %}<div class="cc-section-head"><b>{{ title }}</b>{% if more %}<small>{% blocktranslate count counter=total %}{{ counter }} in total{% plural %}{{ counter }} in total{% endblocktranslate %}</small>{% endif %}</div>{% endif %}
+  {% if rows %}
+    <div class="cc-section-table"{% if height %} style="max-height:{{ height }}px"{% endif %}>
+      <table class="cc-table">
+        <thead><tr>{% for h in headers %}<th>{{ h }}</th>{% endfor %}</tr></thead>
+        <tbody>{% for row in rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+      </table>
+    </div>
+    {% if more %}<p class="cc-section-more">{% blocktranslate count counter=more %}And {{ counter }} more{% plural %}And {{ counter }} more{% endblocktranslate %}</p>{% endif %}
+  {% else %}
+    <p class="cc-muted cc-section-empty">{% firstof empty_text _("Nothing here yet.") %}</p>
+  {% endif %}
+</div>

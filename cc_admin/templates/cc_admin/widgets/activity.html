@@ -6,7 +6,7 @@
       <li class="cc-tl-{{ row.verb }}">
         <span class="cc-tl-dot">{% if row.verb == "added" %}{% icon "plus" %}{% elif row.verb == "deleted" %}{% icon "trash" %}{% else %}{% icon "pencil" %}{% endif %}</span>
         <div>
-          <p>{% if row.who %}<b>{{ row.who }}</b> {% endif %}{{ row.verb }} {% if row.model %}{{ row.model|lower }} {% endif %}{% if row.url %}<a href="{{ row.url }}">{{ row.entry.object_repr }}</a>{% else %}<span>{{ row.entry.object_repr }}</span>{% endif %}</p>
+          <p>{% if row.who %}{% if row.who_url %}<a href="{{ row.who_url }}" class="cc-tl-who">{{ row.who }}</a>{% else %}<b>{{ row.who }}</b>{% endif %} {% endif %}{{ row.verb }} {% if row.model %}{{ row.model|lower }} {% endif %}{% if row.url %}<a href="{{ row.url }}">{{ row.entry.object_repr }}</a>{% else %}<span>{{ row.entry.object_repr }}</span>{% endif %}</p>
           <time datetime="{{ row.entry.action_time|date:'c' }}" data-relative>{{ row.entry.action_time|timesince }} {% translate 'ago' %}</time>
         </div>
       </li>

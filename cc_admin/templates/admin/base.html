@@ -3,12 +3,13 @@
 <html lang="{{ LANGUAGE_CODE|default:"en-us" }}" dir="{{ LANGUAGE_BIDI|yesno:'rtl,ltr,auto' }}" class="cc{% if is_popup %} cc-popup{% endif %}" data-theme="{{ cc.theme.css_key }}" data-skin="{{ cc.theme.key }}" data-scheme="{{ cc.scheme }}" data-layout="{{ cc.layout }}" data-density="{{ cc.density }}">
 <head>
 <meta charset="utf-8">
-<title>{% block title %}{% endblock %}</title>
+<title>{% if cc.title_prefix %}{{ cc.title_prefix }} {% endif %}{% block title %}{% endblock %}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 {% if cc.favicon %}<link rel="icon" href="{{ cc.favicon }}">{% endif %}
 <script{% cc_nonce %}>try{var s=localStorage.getItem("cc-admin:side");if(s)document.documentElement.dataset.side=s;}catch(e){}</script>
 {% if cc.fonts %}<link rel="stylesheet" href="{% static 'cc_admin/fonts/fonts.css' %}">{% endif %}
+{% for href in cc.font_files %}<link rel="stylesheet" href="{{ href }}">{% endfor %}
 <link rel="stylesheet" href="{% static 'cc_admin/css/cc.css' %}?v={{ cc.version }}">
 <link rel="stylesheet" href="{% static 'cc_admin/css/themes.css' %}?v={{ cc.version }}">
 {% cc_tokens %}
@@ -50,9 +51,10 @@
       <div class="cc-top-tools">
         {% if cc.environment %}<span class="cc-env cc-tone-{{ cc.environment.tone }}"><i></i>{{ cc.environment.label }}</span>{% endif %}
         {% block nav-global %}{% endblock %}
+        {% if cc.languages %}{% include "cc_admin/languages.html" %}{% endif %}
         {% if cc.palette and user.is_authenticated %}
           <button type="button" class="cc-palette-trigger" data-palette-open>
-            {% icon "search" %}<span>{% translate 'Search or jump to' %}</span><kbd data-mod>⌘K</kbd>
+            {% icon "search" %}<span>{% translate 'Search or jump to' %}</span><kbd data-shortcut="palette"></kbd>
           </button>
         {% endif %}
         {% block usertools %}

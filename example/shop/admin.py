@@ -4,17 +4,23 @@
 
 from django.contrib import admin, messages
 from django.db.models import Count, Sum
+from django.urls import path
 from django.utils import timezone
+from django.utils.html import format_html
 
 from cc_admin.admin import ModelAdmin, StackedInline, TabularInline
 from cc_admin.decorators import action, display
 from cc_admin.filters import (
+    AllValuesCheckboxFilter,
     ChoicesCheckboxFilter,
     FieldTextFilter,
     RangeDateFilter,
-    RangeNumericFilter,
     RelatedDropdownFilter,
+    SliderNumericFilter,
 )
+from cc_admin.sections import TableSection
+from cc_admin.views import AdminPageView
+from cc_admin.widgets import ColorWidget, RichTextWidget, SegmentedWidget
 
 from .models import Category, Customer, Note, Order, OrderItem, Product, Tag
 
@@ -28,11 +34,30 @@ ORDER_TONES = {
 }
 
 
+class CategoryProducts(TableSection):
+    verbose_name = "Products"
+    related_name = "products"
+    fields = ["name", "sku", "price", "stock"]
+    limit = 6
+
+
 @admin.register(Category)
 class CategoryAdmin(ModelAdmin):
-    list_display = ["name", "slug", "product_count"]
+    list_display = ["name", "swatch", "slug", "product_count"]
     prepopulated_fields = {"slug": ["name"]}
     search_fields = ["name"]
+    ordering_field = "position"
+    list_sections = [CategoryProducts]
+    exclude = ["position", "color"]
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == "hex_color":
+            kwargs["widget"] = ColorWidget
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+    @display(description="Colour")
+    def swatch(self, obj):
+        return format_html('<span class="cc-badge" style="--tone:{}">{}</span>', obj.hex_color, obj.hex_color)
 
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(n=Count("products"))
@@ -53,7 +78,7 @@ class ProductAdmin(ModelAdmin):
     list_filter = [
         ("status", ChoicesCheckboxFilter),
         ("category", RelatedDropdownFilter),
-        ("price", RangeNumericFilter),
+        ("price", SliderNumericFilter),
         "is_featured",
         ("launched_on", RangeDateFilter),
     ]
@@ -62,14 +87,14 @@ class ProductAdmin(ModelAdmin):
     autocomplete_fields = ["category"]
     filter_horizontal = ["tags"]
     list_per_page = 25
-    actions_list = ["sync_inventory"]
+    actions_list = ["sync_inventory", {"title": "Reports", "icon": "file-chart-column", "items": ["stock_report", "price_report"]}]
     actions_row = ["duplicate", "archive"]
     actions_detail = ["preview"]
     conditional_fields = {"discount_percent": "has_discount"}
     fieldsets = [
         (None, {"fields": ["name", ("slug", "sku"), "category", "description"]}),
         ("Pricing", {"fields": [("price", "cost"), "has_discount", "discount_percent"], "classes": ["tab"]}),
-        ("Inventory", {"fields": [("stock", "launched_on"), "tags"], "classes": ["tab"]}),
+        ("Inventory", {"fields": [("stock", "launched_on"), "tags", "specs"], "classes": ["tab"]}),
         ("Publishing", {"fields": ["status", "is_featured", "created_at"], "classes": ["sidebar"]}),
     ]
 
@@ -81,9 +106,24 @@ class ProductAdmin(ModelAdmin):
     def status_label(self, obj):
         return obj.status, obj.get_status_display()
 
-    @display(description="Stock", ordering="stock")
+    @display(description="Stock", ordering="stock", progress=True)
     def stock_level(self, obj):
-        return obj.stock
+        return obj.stock, 240
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == "description":
+            kwargs["widget"] = RichTextWidget
+        if db_field.name == "status":
+            kwargs["widget"] = SegmentedWidget(choices=db_field.choices)
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+    @action(description="Stock report", icon="boxes")
+    def stock_report(self, request):
+        messages.info(request, "Stock report is on its way to your inbox.")
+
+    @action(description="Price history", icon="chart-line")
+    def price_report(self, request):
+        messages.info(request, "Price history exported.")
 
     @action(description="Sync inventory", icon="refresh-cw")
     def sync_inventory(self, request):
@@ -112,6 +152,47 @@ class OrderItemInline(TabularInline):
     fields = ["product", "quantity", "unit_price", "position"]
 
 
+class OrderLines(TableSection):
+    verbose_name = "Items"
+    related_name = "items"
+    fields = ["product", "quantity", "unit_price", "line_total"]
+
+    def line_total(self, item):
+        return f"${item.quantity * item.unit_price:,.2f}"
+
+    line_total.short_description = "Line total"
+
+
+class OrderNotes(TableSection):
+    verbose_name = "Notes"
+    related_name = "timeline"
+    fields = ["author", "body", "created_at"]
+    empty_text = "No notes on this order."
+
+
+class CustomerOrders(TableSection):
+    verbose_name = "Latest orders"
+    related_name = "orders"
+    fields = ["number", "status", "total", "created_at"]
+    limit = 8
+
+    def get_queryset(self):
+        return self.obj.orders.order_by("-created_at")
+
+
+class ReportsView(AdminPageView):
+    title = "Reports"
+    subtitle = "Numbers the team asks for every Monday."
+    template_name = "shop/reports.html"
+    permission_required = "shop.view_order"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        rows = Order.objects.values("channel").annotate(n=Count("id"), revenue=Sum("total")).order_by("-revenue")
+        context["rows"] = rows
+        return context
+
+
 class NoteInline(StackedInline):
     model = Note
     extra = 0
@@ -128,6 +209,7 @@ class CustomerAdmin(ModelAdmin):
     list_per_page = 30
     compressed_fields = True
     actions_row = ["send_reset"]
+    form_sections = [CustomerOrders]
     fieldsets = [
         (None, {"fields": ["name", "email", ("phone", "country", "city")]}),
         ("Account", {"fields": ["tier", "is_active", "marketing_opt_in", "joined_at"]}),
@@ -161,11 +243,13 @@ class CustomerAdmin(ModelAdmin):
 @admin.register(Order)
 class OrderAdmin(ModelAdmin):
     list_display = ["number", "customer_link", "status_label", "channel", "items_count", "total", "created_at"]
-    list_filter = [("status", ChoicesCheckboxFilter), "channel", ("total", RangeNumericFilter), ("created_at", RangeDateFilter), "is_gift"]
+    list_filter = [("status", ChoicesCheckboxFilter), ("channel", AllValuesCheckboxFilter), ("total", SliderNumericFilter), ("created_at", RangeDateFilter), "is_gift"]
     search_fields = ["number", "customer__name", "customer__email", "tracking_code"]
     autocomplete_fields = ["customer"]
     date_hierarchy = "created_at"
     inlines = [OrderItemInline, NoteInline]
+    list_sections = [OrderLines, OrderNotes]
+    list_horizontal_scrollbar_top = True
     readonly_fields = ["total"]
     list_select_related = ["customer"]
     actions = ["mark_shipped"]
@@ -192,6 +276,10 @@ class OrderAdmin(ModelAdmin):
     @display(description="Items", ordering="n_items")
     def items_count(self, obj):
         return obj.n_items or 0
+
+    def get_urls(self):
+        view = self.admin_site.admin_view(ReportsView.as_view(model_admin=self))
+        return [path("reports/", view, name="shop_order_reports")] + super().get_urls()
 
     @admin.action(description="Mark selected as shipped")
     def mark_shipped(self, request, queryset):

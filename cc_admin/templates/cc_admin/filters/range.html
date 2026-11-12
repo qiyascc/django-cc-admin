@@ -5,4 +5,14 @@
     <label><span>{% translate 'From' %}</span><input type="{{ spec.input_type }}" step="{{ spec.step }}" name="{{ spec.lookup_gte }}" value="{{ spec.value_from }}"></label>
     <label><span>{% translate 'To' %}</span><input type="{{ spec.input_type }}" step="{{ spec.step }}" name="{{ spec.lookup_lte }}" value="{{ spec.value_to }}"></label>
   </div>
+  {% if spec.presets and spec.input_type == "date" %}
+  <div class="cc-presets" data-presets>
+    <button type="button" data-preset="today">{% translate 'Today' %}</button>
+    <button type="button" data-preset="yesterday">{% translate 'Yesterday' %}</button>
+    <button type="button" data-preset="7">{% translate '7 days' %}</button>
+    <button type="button" data-preset="30">{% translate '30 days' %}</button>
+    <button type="button" data-preset="month">{% translate 'This month' %}</button>
+    <button type="button" data-preset="year">{% translate 'This year' %}</button>
+  </div>
+  {% endif %}
 </details>

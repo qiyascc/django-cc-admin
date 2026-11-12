@@ -109,9 +109,45 @@ class RangeNumericFilter(RangeFilterMixin, admin.FieldListFilter):
     template = "cc_admin/filters/range.html"
 
 
+class SliderNumericFilter(RangeNumericFilter):
+    template = "cc_admin/filters/slider.html"
+    step = 1
+
+    def __init__(self, field, request, params, model, model_admin, field_path):
+        super().__init__(field, request, params, model, model_admin, field_path)
+        bounds = model_admin.get_queryset(request).aggregate(low=models.Min(field_path), high=models.Max(field_path))
+        self.low = bounds["low"] if bounds["low"] is not None else 0
+        self.high = bounds["high"] if bounds["high"] is not None else 0
+        if isinstance(field, (models.DecimalField, models.FloatField)) and self.step == 1:
+            self.step = "0.01"
+        self.low = int(self.low) if isinstance(self.step, int) else float(self.low)
+        self.high = int(-(-self.high // 1)) if isinstance(self.step, int) else float(self.high)
+
+
+class SingleNumericFilter(InputFilterMixin, admin.FieldListFilter):
+    template = "cc_admin/filters/text.html"
+    input_type = "number"
+    lookup = "exact"
+
+    def __init__(self, field, request, params, model, model_admin, field_path):
+        self.parameter_name = f"{field_path}__{self.lookup}" if self.lookup != "exact" else field_path
+        self.field = field
+        self.field_path = field_path
+        self.title = getattr(field, "verbose_name", field_path)
+        admin.ListFilter.__init__(self, request, params, model, model_admin)
+        self._take(params)
+
+    def expected_parameters(self):
+        return [self.parameter_name]
+
+    def value(self):
+        return self.value_of(self.parameter_name)
+
+
 class RangeDateFilter(RangeFilterMixin, admin.FieldListFilter):
     template = "cc_admin/filters/range.html"
     input_type = "date"
+    presets = True
 
     def __init__(self, field, request, params, model, model_admin, field_path):
         self.suffix = "__date" if isinstance(field, models.DateTimeField) else ""
@@ -194,7 +230,25 @@ class RelatedCheckboxFilter(ChoicesCheckboxFilter):
     pass
 
 
+class AllValuesCheckboxFilter(ChoicesCheckboxFilter):
+    def options(self):
+        values = (
+            self.model_admin.get_queryset(self.request)
+            .exclude(**{f"{self.field_path}__isnull": True})
+            .order_by(self.field_path)
+            .values_list(self.field_path, flat=True)
+            .distinct()
+        )
+        return [(str(v), str(v)) for v in values[:200]]
+
+    def __init__(self, field, request, params, model, model_admin, field_path):
+        self.model_admin = model_admin
+        self.request = request
+        super().__init__(field, request, params, model, model_admin, field_path)
+
+
 __all__ = [
+    "AllValuesCheckboxFilter",
     "AllValuesDropdownFilter",
     "BooleanRadioFilter",
     "ChoicesCheckboxFilter",
@@ -207,5 +261,7 @@ __all__ = [
     "RangeNumericFilter",
     "RelatedCheckboxFilter",
     "RelatedDropdownFilter",
+    "SingleNumericFilter",
+    "SliderNumericFilter",
     "TextFilter",
 ]
