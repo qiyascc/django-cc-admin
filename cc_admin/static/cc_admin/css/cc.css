@@ -947,7 +947,8 @@ html.cc .cc-content input[type=file]::file-selector-button { font: inherit; font
 .calendar table { border-collapse: collapse; margin: 0 auto; }
 .calendar th { font-size: 11px; color: var(--cc-text-3); font-weight: 550; padding: 4px; }
 .calendar td { padding: 1px; text-align: center; }
-.calendar td a, .calendar td.nonday { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 7px; color: var(--cc-text) !important; font-variant-numeric: tabular-nums; }
+.calendar td a { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 7px; color: var(--cc-text) !important; font-variant-numeric: tabular-nums; }
+.calendar td.nonday { width: 34px; height: 34px; }
 .calendar td a:hover { background: var(--cc-surface-2); }
 .calendar td.today a { color: var(--cc-accent-text) !important; font-weight: 700; box-shadow: inset 0 0 0 1px var(--cc-accent); }
 .calendar td.selected a { background: var(--cc-accent); color: var(--cc-accent-fg) !important; }

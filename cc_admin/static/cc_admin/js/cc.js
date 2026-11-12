@@ -868,5 +868,16 @@
     }
   });
 
+  function tidyLegacyCollapse() {
+    $$(".cc-fieldset .collapse-toggle").forEach(function (a) {
+      var h = a.closest("h2, h3, h4");
+      a.remove();
+      if (h) h.innerHTML = h.innerHTML.replace(/\s*\(\s*\)\s*$/, "");
+    });
+    $$(".cc-fieldset.collapsed").forEach(function (f) { f.classList.remove("collapsed"); });
+  }
+  tidyLegacyCollapse();
+  on(window, "load", tidyLegacyCollapse);
+
   applyPrefs(prefs);
 })();
