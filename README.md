@@ -1,6 +1,10 @@
 # django-cc-admin
 
 [![PyPI](https://img.shields.io/pypi/v/django-cc-admin?color=3775A9&logo=pypi&logoColor=white)](https://pypi.org/project/django-cc-admin/)
+[![Downloads](https://img.shields.io/pypi/dm/django-cc-admin?color=3775A9)](https://pypistats.org/packages/django-cc-admin)
+[![Python](https://img.shields.io/pypi/pyversions/django-cc-admin?logo=python&logoColor=white)](https://pypi.org/project/django-cc-admin/)
+[![Django](https://img.shields.io/pypi/frameworkversions/django/django-cc-admin?color=0C4B33&logo=django&logoColor=white&label=django)](https://pypi.org/project/django-cc-admin/)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A new skin and a set of tools for the Django admin. It replaces the default look with one of fifteen themes, builds the dashboard from your settings, and updates lists, dashboards and badges live without a page reload. It adds realtime notifications with popups, sounds, desktop and push notifications, a command palette, keyboard shortcuts you can rebind, a GitHub style activity page for your team, better filters, row and page actions, CSV and JSON export, and a lot of small things the stock admin never had.
 
@@ -16,7 +20,7 @@ Works with Django 5.0, 5.1, 5.2, 6.0 and 6.1, Python 3.10 and up.
 pip install django-cc-admin
 ```
 
-The package lives on PyPI: [pypi.org/project/django-cc-admin](https://pypi.org/project/django-cc-admin/).
+The package lives on PyPI: [pypi.org/project/django-cc-admin](https://pypi.org/project/django-cc-admin/). The wheel and the source archive are also attached to every [GitHub release](https://github.com/qiyascc/django-cc-admin/releases). More about the project on [theqiyas.cc](https://theqiyas.cc/projects/django-cc-admin/).
 
 Put `cc_admin` above `django.contrib.admin`:
 
