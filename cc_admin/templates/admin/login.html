@@ -1,0 +1,51 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static cc_admin %}
+
+{% block title %}{% if form.errors %}{% translate "Error:" %} {% endif %}{{ block.super }}{% endblock %}
+{% block extrastyle %}{{ block.super }}{% cc_media form.media %}{% endblock %}
+{% block bodyclass %}{{ block.super }} login cc-login{% endblock %}
+{% block usertools %}{% endblock %}
+{% block nav-global %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+{% block content_title %}{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+{% block cc_tabs %}{% endblock %}
+
+{% block content %}
+{% cc_login as login %}
+<div class="cc-login-wrap">
+  <section class="cc-login-art"{% if login.image %} style="--cc-login-image:url('{{ login.image }}')"{% endif %}>
+    <a href="{% firstof cc.site_url '/' %}" class="cc-brand-link">
+      {% if cc.logo %}<img src="{{ cc.logo.light }}" class="cc-logo cc-only-light" alt="{{ cc.header }}"><img src="{{ cc.logo.dark }}" class="cc-logo cc-only-dark" alt="{{ cc.header }}">
+      {% else %}<span class="cc-brand-mark">{{ cc.header|cc_initials }}</span><span class="cc-brand-text"><b>{{ cc.header }}</b>{% if cc.subheader %}<small>{{ cc.subheader }}</small>{% endif %}</span>{% endif %}
+    </a>
+    <div class="cc-login-copy">
+      <h2>{% firstof login.title cc.header %}</h2>
+      {% if login.text %}<p>{{ login.text }}</p>{% endif %}
+    </div>
+    <div class="cc-login-deco" aria-hidden="true"><i></i><i></i><i></i></div>
+  </section>
+  <section class="cc-login-card">
+    <div class="cc-login-inner" id="content-main">
+      <h1>{% translate 'Log in' %}</h1>
+      <p class="cc-lead">{% blocktranslate with name=cc.header %}Use your staff account for {{ name }}.{% endblocktranslate %}</p>
+      {% if form.errors and not form.non_field_errors %}
+        <div class="cc-note cc-tone-danger errornote">{% icon "circle-exclamation-point" %}<p>{% blocktranslate count counter=form.errors.items|length %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktranslate %}</p></div>
+      {% endif %}
+      {% for error in form.non_field_errors %}<div class="cc-note cc-tone-danger errornote">{% icon "circle-exclamation-point" %}<p>{{ error }}</p></div>{% endfor %}
+      {% if user.is_authenticated %}
+        <div class="cc-note cc-tone-warning errornote">{% icon "triangle-exclamation-point" %}<p>{% blocktranslate trimmed %}You are authenticated as {{ username }}, but are not authorized to access this page. Would you like to login to a different account?{% endblocktranslate %}</p></div>
+      {% endif %}
+      <form action="{{ app_path }}" method="post" id="login-form" class="cc-form">{% csrf_token %}
+        <div class="cc-field form-row"><label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>{{ form.username }}{{ form.username.errors }}</div>
+        <div class="cc-field form-row">
+          <div class="cc-label-row"><label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>{% url 'admin_password_reset' as password_reset_url %}{% if password_reset_url %}<a href="{{ password_reset_url }}" class="password-reset-link">{% translate 'Forgot it?' %}</a>{% endif %}</div>
+          {{ form.password }}{{ form.password.errors }}
+          <input type="hidden" name="next" value="{{ next }}">
+        </div>
+        <button type="submit" class="cc-btn cc-btn-primary cc-btn-block">{% translate 'Log in' %}{% icon "arrow-right" %}</button>
+      </form>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,5 @@
+{% load i18n cc_admin %}
+<section class="cc-span-{{ widget.width }} cc-widget-apps">
+  {% if widget.spec.title %}<h2 class="cc-section-title">{{ widget.spec.title }}</h2>{% endif %}
+  {% include "admin/app_list.html" with app_list=available_apps show_changelinks=True %}
+</section>

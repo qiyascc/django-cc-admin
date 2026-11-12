@@ -1,0 +1,17 @@
+{% load i18n static cc_admin %}
+{% if cl.search_fields %}
+<div id="toolbar" class="cc-search">
+  <form id="changelist-search" method="get" role="search">
+    <label class="cc-search-box">
+      {% icon "search" %}
+      <input type="search" name="{{ search_var }}" value="{{ cl.query }}" id="searchbar" placeholder="{% blocktranslate with name=cl.opts.verbose_name_plural %}Search {{ name }}{% endblocktranslate %}" autocomplete="off"{% if cl.search_help_text %} aria-describedby="searchbar_helptext" title="{{ cl.search_help_text }}"{% endif %}>
+      <kbd>/</kbd>
+    </label>
+    {% for pair in cl.params.items %}{% if pair.0 != search_var %}<input type="hidden" name="{{ pair.0 }}" value="{{ pair.1 }}">{% endif %}{% endfor %}
+    {% if show_result_count %}
+      <span class="cc-search-count">{% blocktranslate count counter=cl.result_count %}{{ counter }} result{% plural %}{{ counter }} results{% endblocktranslate %} · <a href="?{% if cl.is_popup %}{{ is_popup_var }}=1{% if cl.add_facets %}&{% endif %}{% endif %}{% if cl.add_facets %}{{ is_facets_var }}{% endif %}">{% translate "Clear" %}</a></span>
+    {% endif %}
+    {% if cl.search_help_text %}<span class="visually-hidden" id="searchbar_helptext">{{ cl.search_help_text }}</span>{% endif %}
+  </form>
+</div>
+{% endif %}

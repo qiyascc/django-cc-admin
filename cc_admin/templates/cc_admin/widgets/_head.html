@@ -1,0 +1,4 @@
+{% load cc_admin %}{% if widget.spec.title or widget.url %}<header class="cc-card-head">
+  <div>{% if widget.spec.icon %}<span class="cc-card-icon">{% icon widget.spec.icon %}</span>{% endif %}<div><h2>{{ widget.spec.title }}</h2>{% if widget.spec.subtitle %}<p>{{ widget.spec.subtitle }}</p>{% endif %}</div></div>
+  {% if widget.url %}<a href="{{ widget.url }}" class="cc-card-link">{{ widget.spec.link_text|default:"View all" }}{% icon "arrow-up-right" %}</a>{% endif %}
+</header>{% endif %}

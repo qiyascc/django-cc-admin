@@ -1,0 +1,7 @@
+{% load i18n %}
+<details class="cc-filter" data-filter-title="{{ title }}" open>
+  <summary>{{ title|capfirst }}</summary>
+  <div class="cc-segment cc-segment-links">
+    {% for choice in choices %}<a href="{{ choice.query_string|iriencode }}"{% if choice.selected %} class="is-on" aria-current="true"{% endif %}>{{ choice.display }}</a>{% endfor %}
+  </div>
+</details>

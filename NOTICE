@@ -1,0 +1,7 @@
+django-cc-admin bundles third-party assets:
+
+Lucide icons (cc_admin/data/icons.svg), ISC License, https://lucide.dev
+Fonts in cc_admin/static/cc_admin/fonts, SIL Open Font License 1.1, packaged by Fontsource:
+Geist, Geist Mono, Space Grotesk, Source Serif 4, IBM Plex Sans, IBM Plex Mono,
+JetBrains Mono, Archivo, Manrope, DM Sans, Figtree, Nunito, Plus Jakarta Sans,
+Fraunces, Space Mono.

@@ -1,0 +1,15 @@
+{% load cc_admin %}{% with d=widget.data s=widget.spec %}
+<section class="cc-card cc-kpi cc-span-{{ widget.width }}{% if s.tone %} cc-tone-{{ s.tone }}{% endif %}">
+  <div class="cc-kpi-top">
+    <span class="cc-kpi-title">{% if s.icon %}<span class="cc-kpi-icon">{% icon s.icon %}</span>{% endif %}{{ s.title }}</span>
+    {% if widget.url %}<a href="{{ widget.url }}" class="cc-icon-btn" aria-label="{{ s.title }}">{% icon "arrow-up-right" %}</a>{% endif %}
+  </div>
+  <div class="cc-kpi-value"{% if d.full %} title="{{ d.full }}"{% endif %}>{{ d.display }}</div>
+  <div class="cc-kpi-meta">
+    {% if d.delta_text %}<span class="cc-delta cc-delta-{{ d.delta_tone }}">{% if d.delta_tone == "up" or d.delta_tone == "up-bad" %}{% icon "arrow-up-right" %}{% elif d.delta_tone == "down" or d.delta_tone == "down-good" %}{% icon "arrow-down" %}{% endif %}{{ d.delta_text }}</span>{% endif %}
+    {% if d.delta_label %}<span class="cc-muted">{{ d.delta_label }}</span>{% endif %}
+    {% if d.footer %}<span class="cc-muted">{{ d.footer }}</span>{% endif %}
+  </div>
+  {% if d.spark_svg %}<div class="cc-kpi-spark">{{ d.spark_svg }}</div>{% endif %}
+</section>
+{% endwith %}

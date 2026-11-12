@@ -1,0 +1,16 @@
+{% load i18n cc_admin %}
+<section class="cc-span-{{ widget.width }} cc-widget-models">
+  {% if widget.spec.title %}<h2 class="cc-section-title">{{ widget.spec.title }}</h2>{% endif %}
+  <div class="cc-model-grid">
+    {% for item in widget.data.items %}
+      <div class="cc-card cc-model-card">
+        <a href="{{ item.url }}" class="cc-model-main">
+          <span class="cc-model-icon">{% icon item.icon %}</span>
+          <span class="cc-model-count">{{ item.count_text }}</span>
+          <span class="cc-model-name">{{ item.title }}<small>{{ item.app }}</small></span>
+        </a>
+        {% if item.add_url %}<a href="{{ item.add_url }}" class="cc-icon-btn cc-model-add" aria-label="{% blocktranslate with name=item.title %}Add {{ name }}{% endblocktranslate %}">{% icon "plus" %}</a>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</section>

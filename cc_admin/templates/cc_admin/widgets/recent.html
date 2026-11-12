@@ -1,0 +1,5 @@
+{% load i18n cc_admin %}
+<section class="cc-card cc-span-{{ widget.width }} cc-widget-recent">
+  {% include "cc_admin/widgets/_head.html" %}
+  <ul class="cc-list" data-recent-list data-empty="{% translate 'Records you open will show up here.' %}"></ul>
+</section>

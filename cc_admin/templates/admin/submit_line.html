@@ -1,0 +1,24 @@
+{% load i18n admin_urls cc_admin %}
+<div class="submit-row cc-submit" data-submit-row>
+{% block submit-row %}
+  {% if show_save %}<button type="submit" name="_save" class="cc-implicit" tabindex="-1" aria-hidden="true"></button>{% elif show_save_and_continue %}<button type="submit" name="_continue" class="cc-implicit" tabindex="-1" aria-hidden="true"></button>{% endif %}
+  <div class="cc-submit-left">
+    {% if show_delete_link and original %}
+      {% url opts|admin_urlname:'delete' original.pk|admin_urlquote as delete_url %}
+      <a role="button" href="{% add_preserved_filters delete_url %}" class="cc-btn cc-btn-danger-ghost deletelink">{% icon "trash" %}<span>{% translate "Delete" %}</span></a>
+    {% endif %}
+    {% if show_close %}
+      {% url opts|admin_urlname:'changelist' as changelist_url %}
+      <a role="button" href="{% add_preserved_filters changelist_url %}" class="cc-btn closelink">{% translate 'Close' %}</a>
+    {% endif %}
+    <span class="cc-dirty" data-dirty hidden><i></i>{% translate 'Unsaved changes' %}</span>
+  </div>
+  <div class="cc-submit-right">
+    {% for action in cc_submit_actions %}<button type="submit" name="_cc_action" value="{{ action.slug }}" class="cc-btn cc-btn-{{ action.variant }}"{% if action.confirm %} data-confirm="{{ action.confirm }}"{% endif %}>{% if action.icon %}{% icon action.icon %}{% endif %}<span>{{ action.label }}</span></button>{% endfor %}
+    {% if show_save_as_new %}<button type="submit" name="_saveasnew" class="cc-btn">{% translate 'Save as new' %}</button>{% endif %}
+    {% if show_save_and_add_another %}<button type="submit" name="_addanother" class="cc-btn">{% translate 'Save and add another' %}</button>{% endif %}
+    {% if show_save_and_continue %}<button type="submit" name="_continue" class="cc-btn" data-save-continue>{% if can_change %}{% translate 'Save and continue editing' %}{% else %}{% translate 'Save and view' %}{% endif %}</button>{% endif %}
+    {% if show_save %}<button type="submit" name="_save" class="cc-btn cc-btn-primary default" data-save>{% icon "check" %}<span>{% translate 'Save' %}</span><kbd data-mod>⌘↵</kbd></button>{% endif %}
+  </div>
+{% endblock %}
+</div>

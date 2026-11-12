@@ -1,0 +1,9 @@
+{% load cc_admin %}
+<section class="cc-card cc-span-{{ widget.width }} cc-widget-links">
+  {% include "cc_admin/widgets/_head.html" %}
+  <div class="cc-links">
+    {% for item in widget.data.items %}
+      <a href="{{ item.url }}" class="cc-link-tile">{% icon item.icon|default:"arrow-up-right" %}<span><b>{{ item.title }}</b>{% if item.text %}<small>{{ item.text }}</small>{% endif %}</span></a>
+    {% endfor %}
+  </div>
+</section>

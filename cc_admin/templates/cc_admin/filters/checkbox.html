@@ -1,0 +1,7 @@
+{% load i18n %}
+<details class="cc-filter" data-filter-title="{{ title }}" open>
+  <summary>{{ title|capfirst }}</summary>
+  <div class="cc-checks">
+    {% for choice in choices %}<label class="cc-check"><input type="checkbox" name="{{ spec.lookup_kwarg }}" value="{{ choice.value }}"{% if choice.selected %} checked{% endif %}><span>{{ choice.display }}</span></label>{% endfor %}
+  </div>
+</details>

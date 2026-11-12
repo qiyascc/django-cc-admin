@@ -1,0 +1,18 @@
+{% load cc_admin %}
+<section class="cc-card cc-span-{{ widget.width }} cc-widget-list">
+  {% include "cc_admin/widgets/_head.html" %}
+  <ul class="cc-list">
+    {% for item in widget.data.items %}
+      <li>
+        {% if item.url %}<a href="{{ item.url }}" class="cc-list-row">{% else %}<div class="cc-list-row">{% endif %}
+          {% if item.avatar %}<span class="cc-avatar" data-seed="{{ item.title }}">{% if item.image %}<img src="{{ item.image }}" alt="">{% else %}{{ item.title|cc_initials }}{% endif %}</span>{% elif item.icon %}<span class="cc-list-icon">{% icon item.icon %}</span>{% endif %}
+          <span class="cc-list-text"><b>{{ item.title }}</b>{% if item.subtitle %}<small>{{ item.subtitle }}</small>{% endif %}</span>
+          {% if item.badge %}<span class="cc-badge cc-tone-{{ item.badge_tone|default:'neutral' }}">{{ item.badge }}</span>{% endif %}
+          {% if item.meta %}<span class="cc-list-meta">{{ item.meta }}</span>{% endif %}
+        {% if item.url %}</a>{% else %}</div>{% endif %}
+      </li>
+    {% empty %}
+      <li class="cc-muted cc-list-empty">Nothing here yet.</li>
+    {% endfor %}
+  </ul>
+</section>

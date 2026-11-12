@@ -1,0 +1,13 @@
+{% load cc_admin %}
+<section class="cc-card cc-span-{{ widget.width }} cc-widget-progress">
+  {% include "cc_admin/widgets/_head.html" %}
+  <ul class="cc-bars-list">
+    {% for item in widget.data.items %}
+      <li>
+        <div class="cc-bars-label"><span>{{ item.label }}</span><b>{% if item.display %}{{ item.display }}{% else %}{{ item.value|cc_compact }}{% endif %}</b></div>
+        <div class="cc-progress cc-tone-{{ item.tone|default:'accent' }}"><i style="width:{{ item.share|floatformat:'2u' }}%"></i></div>
+        {% if item.meta %}<small class="cc-muted">{{ item.meta }}</small>{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</section>

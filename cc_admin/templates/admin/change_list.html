@@ -1,0 +1,123 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_list cc_admin %}
+
+{% block title %}{% if cl.formset and cl.formset.errors %}{% translate "Error:" %} {% endif %}{{ block.super }}{% endblock %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  {% if cl.formset or action_form %}<script src="{% url 'admin:jsi18n' %}"{% cc_nonce %}></script>{% endif %}
+  {% cc_media media.css %}
+{% endblock %}
+
+{% block extrahead %}
+  {{ block.super }}
+  {% cc_media media.js %}
+{% endblock %}
+
+{% block bodyclass %}{{ block.super }} app-{{ opts.app_label }} model-{{ opts.model_name }} change-list{% endblock %}
+
+{% if not is_popup %}
+{% block breadcrumbs %}
+<ol class="breadcrumbs">
+  <li><a href="{% url 'admin:index' %}">{% translate 'Home' %}</a></li>
+  <li><a href="{% url 'admin:app_list' app_label=cl.opts.app_label %}">{{ cl.opts.app_config.verbose_name }}</a></li>
+  <li aria-current="page">{{ cl.opts.verbose_name_plural|capfirst }}</li>
+</ol>
+{% endblock %}
+{% endif %}
+
+{% block coltype %}{% endblock %}
+
+{% block content_title %}
+  <div class="cc-title-row">
+    <h1>{{ cl.opts.verbose_name_plural|capfirst }}</h1>
+    {% if cc.pinned and not is_popup %}<button type="button" class="cc-icon-btn cc-pin" data-pin="{{ cl.opts.app_label }}.{{ cl.opts.model_name }}" aria-label="{% translate 'Pin to menu' %}">{% icon "star" %}</button>{% endif %}
+  </div>
+  <p class="cc-lead">{% blocktranslate count counter=cl.full_result_count %}{{ counter }} record{% plural %}{{ counter }} records{% endblocktranslate %}{% if cl.result_count != cl.full_result_count and cl.full_result_count != None %} · {% blocktranslate with count=cl.result_count %}{{ count }} match{% endblocktranslate %}{% endif %}</p>
+{% endblock %}
+
+{% block content_subtitle %}{% endblock %}
+
+{% block object-tools %}
+<div class="cc-tools object-tools">
+  {% block object-tools-items %}
+    {% for action in cc_list_actions %}
+      <button type="submit" form="cc-action-form" formaction="{{ action.url }}" class="cc-btn cc-btn-{{ action.variant }}"{% if action.confirm %} data-confirm="{{ action.confirm }}"{% endif %}{% if action.new_tab %} formtarget="_blank"{% endif %}>{% if action.icon %}{% icon action.icon %}{% endif %}<span>{{ action.label }}</span></button>
+    {% endfor %}
+    {% if cc_export and not is_popup %}
+      <div class="cc-dropdown" data-menu>
+        <button type="button" class="cc-btn" data-menu-toggle>{% icon "download" %}<span>{% translate 'Export' %}</span>{% icon "chevron-down" "cc-caret" %}</button>
+        <div class="cc-menu cc-menu-right" role="menu">
+          <a class="cc-menu-item" href="{{ cc_export_url }}{{ cl.get_query_string|cc_qs_join:'_format=csv' }}">{% icon "file-text" %}<span>CSV</span><em>{% translate 'current view' %}</em></a>
+          <a class="cc-menu-item" href="{{ cc_export_url }}{{ cl.get_query_string|cc_qs_join:'_format=json' }}">{% icon "file-text" %}<span>JSON</span><em>{% translate 'current view' %}</em></a>
+        </div>
+      </div>
+    {% endif %}
+    {% change_list_object_tools %}
+  {% endblock %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  {% if cl.formset and cl.formset.errors %}
+    <p class="errornote">{% blocktranslate count counter=cl.formset.total_error_count %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktranslate %}</p>
+    {{ cl.formset.non_form_errors }}
+  {% endif %}
+  <div class="module cc-changelist{% if cl.has_filters %} filtered{% endif %}" id="changelist" data-model="{{ cl.opts.app_label }}.{{ cl.opts.model_name }}">
+    <div class="cc-list-toolbar">
+      {% block search %}{% search_form cl %}{% endblock %}
+      <div class="cc-list-tools">
+        {% if cl.has_filters %}
+          {% cc_active_filters cl as active_filters %}
+          <button type="button" class="cc-btn{% if active_filters %} is-on{% endif %}" data-drawer-open="filters">{% icon "list-filter" %}<span>{% translate 'Filters' %}</span>{% if active_filters %}<em class="cc-count">{{ active_filters }}</em>{% endif %}</button>
+        {% endif %}
+        <div class="cc-dropdown" data-menu data-columns-menu hidden>
+          <button type="button" class="cc-btn cc-btn-icon" data-menu-toggle aria-label="{% translate 'Columns' %}" title="{% translate 'Columns' %}">{% icon "columns-3" %}</button>
+          <div class="cc-menu cc-menu-right" role="menu" data-columns-list></div>
+        </div>
+      </div>
+    </div>
+    {% block date_hierarchy %}{% if cl.date_hierarchy %}{% date_hierarchy cl %}{% endif %}{% endblock %}
+    {% if cl.has_filters %}{% cc_filter_chips cl as chips %}{% if chips %}
+      <div class="cc-chips">
+        {% for chip in chips %}<a class="cc-chip" href="{{ chip.url }}" title="{% translate 'Remove filter' %}"><span>{{ chip.title }}</span><b>{{ chip.value }}</b>{% icon "x" %}</a>{% endfor %}
+        <a class="cc-chip-clear" href="{{ cl.clear_all_filters_qs }}">{% translate 'Clear all' %}</a>
+      </div>
+    {% endif %}{% endif %}
+    <form id="changelist-form" method="post"{% if cl.formset and cl.formset.is_multipart %} enctype="multipart/form-data"{% endif %} novalidate>{% csrf_token %}
+      {% if cl.formset %}<div>{{ cl.formset.management_form }}</div>{% endif %}
+      {% block result_list %}
+        {% result_list cl %}
+        {% if action_form and cl.show_admin_actions %}{% admin_actions %}{% endif %}
+      {% endblock %}
+      {% block pagination %}
+        <div class="cc-list-foot changelist-footer">
+          {% pagination cl %}
+          {% if cl.formset and cl.result_count %}<button type="submit" name="_save" class="cc-btn cc-btn-primary default">{% icon "check" %}<span>{% translate 'Save' %}</span></button>{% endif %}
+        </div>
+      {% endblock %}
+    </form>
+  </div>
+  {% block filters %}
+    {% if cl.has_filters %}
+      <dialog class="cc-drawer" data-drawer="filters" id="changelist-filter" aria-labelledby="changelist-filter-header">
+        <form method="get" class="cc-drawer-form" data-filter-form>
+          <div class="cc-panel-head">
+            <div><b id="changelist-filter-header">{% translate 'Filters' %}</b>{% if cl.is_facets_optional %}<small>{% if cl.add_facets %}<a href="{{ cl.remove_facet_link }}">{% translate "Hide counts" %}</a>{% else %}<a href="{{ cl.add_facet_link }}">{% translate "Show counts" %}</a>{% endif %}</small>{% endif %}</div>
+            <button type="button" class="cc-icon-btn" data-close aria-label="{% translate 'Close' %}">{% icon "x" %}</button>
+          </div>
+          <div class="cc-drawer-body">
+            {% cc_filter_hidden cl %}
+            {% for spec in cl.filter_specs %}{% admin_list_filter cl spec %}{% endfor %}
+          </div>
+          <div class="cc-drawer-foot">
+            {% if cl.has_active_filters %}<a href="{{ cl.clear_all_filters_qs }}" class="cc-btn">{% translate 'Reset' %}</a>{% endif %}
+            <button type="submit" class="cc-btn cc-btn-primary">{% icon "check" %}<span>{% translate 'Apply' %}</span></button>
+          </div>
+        </form>
+      </dialog>
+    {% endif %}
+  {% endblock %}
+</div>
+{% endblock %}

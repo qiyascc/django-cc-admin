@@ -1,0 +1,99 @@
+{% load i18n static tz cc_admin %}<!DOCTYPE html>
+{% get_current_language as LANGUAGE_CODE %}{% get_current_language_bidi as LANGUAGE_BIDI %}{% cc_setup %}
+<html lang="{{ LANGUAGE_CODE|default:"en-us" }}" dir="{{ LANGUAGE_BIDI|yesno:'rtl,ltr,auto' }}" class="cc{% if is_popup %} cc-popup{% endif %}" data-theme="{{ cc.theme.css_key }}" data-skin="{{ cc.theme.key }}" data-scheme="{{ cc.scheme }}" data-layout="{{ cc.layout }}" data-density="{{ cc.density }}">
+<head>
+<meta charset="utf-8">
+<title>{% block title %}{% endblock %}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+{% if cc.favicon %}<link rel="icon" href="{{ cc.favicon }}">{% endif %}
+<script{% cc_nonce %}>try{var s=localStorage.getItem("cc-admin:side");if(s)document.documentElement.dataset.side=s;}catch(e){}</script>
+{% if cc.fonts %}<link rel="stylesheet" href="{% static 'cc_admin/fonts/fonts.css' %}">{% endif %}
+<link rel="stylesheet" href="{% static 'cc_admin/css/cc.css' %}?v={{ cc.version }}">
+<link rel="stylesheet" href="{% static 'cc_admin/css/themes.css' %}?v={{ cc.version }}">
+{% cc_tokens %}
+{% for href in cc.styles %}<link rel="stylesheet" href="{{ href }}">{% endfor %}
+{% block dark-mode-vars %}{% endblock %}
+{% block extrastyle %}{% endblock %}
+<script src="{% static 'cc_admin/js/cc.js' %}?v={{ cc.version }}" defer{% cc_nonce %}></script>
+{% for src in cc.scripts %}<script src="{{ src }}" defer{% cc_nonce %}></script>{% endfor %}
+{% block extrahead %}{% endblock %}
+{% block responsive %}{% endblock %}
+{% block blockbots %}<meta name="robots" content="NONE,NOARCHIVE">{% endblock %}
+</head>
+<body class="cc-body {% if is_popup %}popup {% endif %}{% block bodyclass %}{% endblock %}"
+  data-admin-utc-offset="{% now "Z" %}"
+  data-admin-server-timezone="{% get_current_timezone as time_zone %}{{ time_zone }}">
+<a href="#content-start" class="cc-skip skip-to-content-link">{% translate 'Skip to main content' %}</a>
+<div id="container" class="cc-app">
+  {% if not is_popup %}
+    {% block header %}
+      {% block nav-sidebar %}
+        {% if has_permission %}{% include "cc_admin/sidebar.html" %}{% endif %}
+      {% endblock %}
+    {% endblock %}
+  {% endif %}
+  <div class="cc-main" id="main">
+    {% if not is_popup and has_permission %}
+    <header class="cc-top" id="header">
+      <button type="button" class="cc-icon-btn cc-burger" data-side-toggle aria-label="{% translate 'Menu' %}">{% icon "panel-left" %}</button>
+      {% block nav-breadcrumbs %}
+        <nav class="cc-crumbs" aria-label="{% translate 'Breadcrumbs' %}">
+          {% block breadcrumbs %}
+            <ol class="breadcrumbs">
+              <li><a href="{% url 'admin:index' %}">{% translate 'Home' %}</a></li>
+              {% if title %}<li aria-current="page">{{ title }}</li>{% endif %}
+            </ol>
+          {% endblock %}
+        </nav>
+      {% endblock %}
+      <div class="cc-top-tools">
+        {% if cc.environment %}<span class="cc-env cc-tone-{{ cc.environment.tone }}"><i></i>{{ cc.environment.label }}</span>{% endif %}
+        {% block nav-global %}{% endblock %}
+        {% if cc.palette and user.is_authenticated %}
+          <button type="button" class="cc-palette-trigger" data-palette-open>
+            {% icon "search" %}<span>{% translate 'Search or jump to' %}</span><kbd data-mod>⌘K</kbd>
+          </button>
+        {% endif %}
+        {% block usertools %}
+          {% if has_permission %}
+            {% include "cc_admin/usermenu.html" %}
+          {% endif %}
+        {% endblock %}
+      </div>
+    </header>
+    {% endif %}
+    <main id="content-start" class="cc-content content" tabindex="-1">
+      {% block messages %}
+        {% if messages %}
+          <ul class="cc-toasts messagelist" data-toasts>{% for message in messages %}
+            <li class="cc-toast {{ message.tags }}">{% if message.level == 40 %}{% icon "circle-exclamation-point" %}{% elif message.level == 30 %}{% icon "triangle-exclamation-point" %}{% elif message.level == 25 %}{% icon "circle-check" %}{% else %}{% icon "info" %}{% endif %}<span>{{ message|capfirst }}</span><button type="button" class="cc-icon-btn" data-dismiss aria-label="{% translate 'Close' %}">{% icon "x" %}</button></li>
+          {% endfor %}</ul>
+        {% endif %}
+      {% endblock messages %}
+      <div id="content" class="cc-page {% block coltype %}colM{% endblock %}">
+        {% block cc_tabs %}{% cc_tabs as tabs %}{% if tabs %}{% include "cc_admin/tabs.html" %}{% endif %}{% endblock %}
+        <div class="cc-pagehead titles-and-tools">
+          <div class="cc-titles titles">
+            {% block pretitle %}{% endblock %}
+            {% block content_title %}{% if title %}<h1>{{ title }}</h1>{% endif %}{% endblock %}
+            {% block content_subtitle %}{% if subtitle %}<h2>{{ subtitle }}</h2>{% endif %}{% endblock %}
+          </div>
+          {% block object-tools %}{% endblock %}
+        </div>
+        {% block content %}
+          {{ content }}
+        {% endblock %}
+        {% block sidebar %}{% endblock %}
+      </div>
+    </main>
+    <footer id="footer" class="cc-footer">{% block footer %}{% if cc.footer %}{{ cc.footer }}{% endif %}{% endblock %}</footer>
+  </div>
+</div>
+{% if not is_popup and user.is_authenticated %}{% include "cc_admin/overlays.html" %}{% endif %}
+<form id="cc-action-form" method="post" hidden>{% csrf_token %}</form>
+<script type="application/json" id="cc-config"{% cc_nonce %}>{{ cc.client|safe }}</script>
+{% block extrabody %}{% endblock extrabody %}
+{% cc_sprite %}
+</body>
+</html>

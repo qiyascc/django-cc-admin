@@ -1,0 +1,22 @@
+{% load i18n cc_admin %}
+{% if app_list %}
+  <div class="cc-apps">
+  {% for app in app_list %}
+    <section class="cc-card cc-app app-{{ app.app_label }}">
+      <header class="cc-card-head"><div><h2><a href="{{ app.app_url }}">{{ app.name }}</a></h2></div><span class="cc-muted">{{ app.models|length }}</span></header>
+      <ul class="cc-app-models">
+        {% for model in app.models %}
+          <li class="model-{{ model.object_name|lower }}">
+            {% if model.admin_url %}<a href="{{ model.admin_url }}" class="cc-app-model">{% else %}<span class="cc-app-model">{% endif %}
+              <span>{{ model.name }}</span>{% if model.view_only %}<em class="cc-badge cc-tone-neutral">{% translate 'view' %}</em>{% endif %}
+            {% if model.admin_url %}</a>{% else %}</span>{% endif %}
+            {% if model.add_url %}<a href="{{ model.add_url }}" class="cc-icon-btn addlink" aria-label="{% translate 'Add' %} {{ model.name }}">{% icon "plus" %}</a>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endfor %}
+  </div>
+{% else %}
+  <div class="cc-card cc-empty">{% icon "lock" %}<p>{% translate 'You don’t have permission to view or edit anything.' %}</p></div>
+{% endif %}

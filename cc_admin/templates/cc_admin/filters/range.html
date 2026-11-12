@@ -1,0 +1,8 @@
+{% load i18n %}
+<details class="cc-filter cc-filter-input" data-filter-title="{{ title }}" open>
+  <summary>{{ title|capfirst }}</summary>
+  <div class="cc-range">
+    <label><span>{% translate 'From' %}</span><input type="{{ spec.input_type }}" step="{{ spec.step }}" name="{{ spec.lookup_gte }}" value="{{ spec.value_from }}"></label>
+    <label><span>{% translate 'To' %}</span><input type="{{ spec.input_type }}" step="{{ spec.step }}" name="{{ spec.lookup_lte }}" value="{{ spec.value_to }}"></label>
+  </div>
+</details>

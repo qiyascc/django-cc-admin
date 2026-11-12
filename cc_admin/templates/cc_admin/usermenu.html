@@ -1,0 +1,22 @@
+{% load i18n cc_admin %}
+<div class="cc-user" data-menu id="user-tools">
+  <button type="button" class="cc-user-btn" data-menu-toggle aria-haspopup="menu" aria-expanded="false">
+    <span class="cc-avatar" data-seed="{{ user.get_username }}">{% firstof user.get_full_name user.get_username as display_name %}{{ display_name|cc_initials }}</span>
+    <span class="cc-user-name">{% firstof user.get_short_name user.get_username %}</span>
+    {% icon "chevron-down" "cc-caret" %}
+  </button>
+  <div class="cc-menu cc-menu-right" role="menu">
+    <div class="cc-menu-head">
+      <b>{% firstof user.get_full_name user.get_username %}</b>
+      {% if user.email %}<small>{{ user.email }}</small>{% endif %}
+    </div>
+    {% if cc.site_url %}<a class="cc-menu-item" href="{{ cc.site_url }}" role="menuitem">{% icon "external-link" %}<span>{% translate 'View site' %}</span></a>{% endif %}
+    {% for link in cc.user_links %}<a class="cc-menu-item" href="{{ link.url }}" role="menuitem">{% icon link.icon %}<span>{{ link.title }}</span></a>{% endfor %}
+    {% if user.is_active and user.is_staff %}{% url 'django-admindocs-docroot' as docsroot %}{% if docsroot %}<a class="cc-menu-item" href="{{ docsroot }}" role="menuitem">{% icon "book-open" %}<span>{% translate 'Documentation' %}</span></a>{% endif %}{% endif %}
+    {% if cc.switcher %}<button type="button" class="cc-menu-item" data-theme-open role="menuitem">{% icon "palette" %}<span>{% translate 'Theme' %}</span><em>{{ cc.theme.label }}</em></button>{% endif %}
+    {% if cc.shortcuts %}<button type="button" class="cc-menu-item" data-keys-open role="menuitem">{% icon "keyboard" %}<span>{% translate 'Keyboard shortcuts' %}</span><kbd>?</kbd></button>{% endif %}
+    {% if user.has_usable_password %}<a class="cc-menu-item" href="{% url 'admin:password_change' %}" role="menuitem">{% icon "lock" %}<span>{% translate 'Change password' %}</span></a>{% endif %}
+    <hr>
+    <form id="logout-form" method="post" action="{% url 'admin:logout' %}">{% csrf_token %}<button type="submit" class="cc-menu-item cc-tone-danger" role="menuitem">{% icon "log-out" %}<span>{% translate 'Log out' %}</span></button></form>
+  </div>
+</div>

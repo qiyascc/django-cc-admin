@@ -1,0 +1,21 @@
+{% extends "admin/base_site.html" %}
+{% load i18n cc_admin %}
+
+{% block bodyclass %}{{ block.super }} app-{{ app_label }} cc-app-index{% endblock %}
+
+{% if not is_popup %}
+{% block breadcrumbs %}
+<ol class="breadcrumbs">
+  <li><a href="{% url 'admin:index' %}">{% translate 'Home' %}</a></li>
+  <li aria-current="page">{% for app in app_list %}{{ app.name }}{% endfor %}</li>
+</ol>
+{% endblock %}
+{% endif %}
+
+{% block content %}
+<div id="content-main">
+  {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+</div>
+{% endblock %}
+
+{% block sidebar %}{% endblock %}

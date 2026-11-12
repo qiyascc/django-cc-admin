@@ -1,0 +1,10 @@
+{% load i18n cc_admin %}
+{% if show %}
+<nav class="cc-datebar toplinks" aria-label="{% blocktranslate %}Filter by {{ field_name }}{% endblocktranslate %}">
+  {% icon "calendar" %}
+  {% block date-hierarchy-toplinks %}
+    {% block date-hierarchy-back %}{% if back %}<a href="{{ back.link }}" class="cc-chip date-back">{% icon "chevron-left" %}<span>{{ back.title }}</span></a>{% endif %}{% endblock %}
+    {% block date-hierarchy-choices %}{% for choice in choices %}{% if choice.link %}<a href="{{ choice.link }}" class="cc-chip">{{ choice.title }}</a>{% else %}<span class="cc-chip is-on">{{ choice.title }}</span>{% endif %}{% endfor %}{% endblock %}
+  {% endblock %}
+</nav>
+{% endif %}

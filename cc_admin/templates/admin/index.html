@@ -1,0 +1,31 @@
+{% extends "admin/base_site.html" %}
+{% load i18n cc_admin %}
+
+{% block bodyclass %}{{ block.super }} dashboard cc-dashboard{% endblock %}
+{% block nav-breadcrumbs %}<nav class="cc-crumbs" aria-label="{% translate 'Breadcrumbs' %}"><ol class="breadcrumbs"><li aria-current="page">{% translate 'Dashboard' %}</li></ol></nav>{% endblock %}
+{% block coltype %}colMS{% endblock %}
+
+{% block content_title %}
+  {% cc_dashboard as cc_dash %}
+  {% if cc_dash.greeting %}
+    <p class="cc-eyebrow" data-greeting>{% now "l, j F" %}</p>
+    <h1>{% if cc_dash.title %}{{ cc_dash.title }}{% else %}<span data-greeting-text>{% translate 'Welcome back' %}</span>, {% firstof user.get_short_name user.get_username %}{% endif %}</h1>
+    {% if cc_dash.subtitle %}<p class="cc-lead">{{ cc_dash.subtitle }}</p>{% endif %}
+  {% else %}
+    <h1>{% firstof cc_dash.title title %}</h1>
+    {% if cc_dash.subtitle %}<p class="cc-lead">{{ cc_dash.subtitle }}</p>{% endif %}
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+{% cc_dashboard as cc_dash %}
+<div id="content-main" class="cc-grid">
+  {% for widget in cc_dash.widgets %}
+    {% include widget.template %}
+  {% empty %}
+    <div class="cc-card cc-span-12 cc-empty">{% icon "layout-dashboard" %}<p>{% translate "Nothing on the dashboard yet." %}</p></div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block sidebar %}{% endblock %}

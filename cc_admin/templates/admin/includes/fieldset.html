@@ -1,0 +1,32 @@
+{% load cc_admin %}<fieldset class="module aligned cc-fieldset {{ fieldset.classes }}"{% if fieldset.name %} aria-labelledby="{{ prefix }}-{{ id_prefix }}-{{ id_suffix }}-heading"{% endif %}>
+  {% if fieldset.name %}
+    {% if fieldset|cc_collapsible %}<details class="cc-collapse"{% if not fieldset|cc_collapsed %} open{% endif %}><summary>{% endif %}
+    <div class="cc-fieldset-head">
+      <h{{ heading_level|default:2 }} id="{{ prefix }}-{{ id_prefix }}-{{ id_suffix }}-heading" class="fieldset-heading">{{ fieldset.name }}</h{{ heading_level|default:2 }}>
+      {% if fieldset|cc_collapsible %}{% icon "chevron-down" "cc-caret" %}{% endif %}
+    </div>
+    {% if fieldset|cc_collapsible %}</summary>{% endif %}
+  {% endif %}
+  {% if fieldset.description %}<div class="description cc-fieldset-desc">{{ fieldset.description|safe }}</div>{% endif %}
+  <div class="cc-fields">
+  {% for line in fieldset %}
+    <div class="form-row cc-row{% if not line.fields|length == 1 %} cc-row-multi{% endif %}{% if line.fields|length == 1 and line.errors %} errors{% endif %}{% if not line.has_visible_field %} hidden{% endif %}{% for field in line %}{% if field.field.name %} field-{{ field.field.name }}{% endif %}{% endfor %}" style="--cols:{{ line.fields|length }}">
+      {% for field in line %}
+        <div class="cc-field {{ field|cc_widget }}{% if field.is_checkbox %} cc-field-check checkbox-row{% endif %}{% if not field.is_readonly and field.errors %} errors{% endif %}{% if field.field.field.required %} is-required{% endif %}{% if not line.fields|length == 1 %} fieldBox{% if field.field.name %} field-{{ field.field.name }}{% endif %}{% if field.field.is_hidden %} hidden{% endif %}{% endif %}"{% if field.field.name %} data-field="{{ field.field.name }}"{% endif %}>
+          {% if field.is_fieldset %}<fieldset class="cc-choice-group"{% if field.field.help_text %} aria-describedby="{{ field.field.id_for_label }}_helptext"{% endif %}><legend{% if field.field.field.required %} class="required"{% endif %}>{{ field.field.label|capfirst }}</legend>{% endif %}
+          {% if field.is_checkbox %}
+            <div class="checkbox cc-check-line">{{ field.field }}{% if not field.is_fieldset %}<label for="{{ field.field.id_for_label }}" class="vCheckboxLabel">{{ field.field.label|capfirst }}</label>{% endif %}</div>
+          {% else %}
+            {% if not field.is_fieldset %}{% if field.is_readonly %}<label>{{ field.field.label|capfirst }}</label>{% else %}<label for="{{ field.field.id_for_label }}"{% if field.field.field.required %} class="required"{% endif %}>{{ field.field.label|capfirst }}</label>{% endif %}{% endif %}
+            {% if field.is_readonly %}<div class="readonly cc-readonly">{{ field.contents }}</div>{% else %}{{ field.field }}{% endif %}
+          {% endif %}
+          {% if line.fields|length == 1 %}{{ line.errors }}{% elif not field.is_readonly %}{{ field.errors }}{% endif %}
+          {% if field.field.help_text %}<div class="help cc-help{% if field.field.is_hidden %} hidden{% endif %}"{% if field.field.id_for_label %} id="{{ field.field.id_for_label }}_helptext"{% endif %}>{{ field.field.help_text|safe }}</div>{% endif %}
+          {% if field.is_fieldset %}</fieldset>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endfor %}
+  </div>
+  {% if fieldset.name and fieldset|cc_collapsible %}</details>{% endif %}
+</fieldset>

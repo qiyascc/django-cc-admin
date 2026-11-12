@@ -1,0 +1,6 @@
+{% load cc_admin %}
+<section class="cc-card cc-span-{{ widget.width }} cc-widget-chart">
+  {% include "cc_admin/widgets/_head.html" %}
+  {% if widget.data.summary %}<div class="cc-chart-summary">{% for item in widget.data.summary %}<div><span>{{ item.label }}</span><b>{{ item.value }}</b>{% if item.note %}<small>{{ item.note }}</small>{% endif %}</div>{% endfor %}</div>{% endif %}
+  {{ widget.data.svg }}
+</section>

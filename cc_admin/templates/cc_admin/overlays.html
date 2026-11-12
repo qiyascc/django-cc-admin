@@ -1,0 +1,98 @@
+{% load i18n cc_admin %}
+{% if cc.palette %}
+<dialog class="cc-dialog cc-palette" data-palette aria-label="{% translate 'Command palette' %}">
+  <div class="cc-palette-box">
+    <label class="cc-palette-input">{% icon "search" %}<input type="text" placeholder="{% translate 'Search models, records, actions…' %}" data-palette-input autocomplete="off" spellcheck="false"><kbd>esc</kbd></label>
+    <div class="cc-palette-list" data-palette-list role="listbox"></div>
+    <div class="cc-palette-foot">
+      <span><kbd>↑</kbd><kbd>↓</kbd> {% translate 'move' %}</span>
+      <span><kbd>↵</kbd> {% translate 'open' %}</span>
+      <span><kbd data-mod>⌘</kbd><kbd>↵</kbd> {% translate 'new tab' %}</span>
+      <span class="cc-palette-hint" data-palette-hint></span>
+    </div>
+  </div>
+</dialog>
+{% endif %}
+{% if cc.switcher %}
+<dialog class="cc-dialog cc-theme-panel" data-theme-panel aria-label="{% translate 'Theme' %}">
+  <div class="cc-panel-head">
+    <div><b>{% translate 'Appearance' %}</b><small>{% translate 'Saved in this browser.' %}</small></div>
+    <button type="button" class="cc-icon-btn" data-close aria-label="{% translate 'Close' %}">{% icon "x" %}</button>
+  </div>
+  <div class="cc-panel-row">
+    <span class="cc-panel-label">{% translate 'Mode' %}</span>
+    <div class="cc-segment" data-pref="scheme">
+      <button type="button" data-value="auto">{% icon "monitor" %}<span>{% translate 'Auto' %}</span></button>
+      <button type="button" data-value="light">{% icon "sun" %}<span>{% translate 'Light' %}</span></button>
+      <button type="button" data-value="dark">{% icon "moon" %}<span>{% translate 'Dark' %}</span></button>
+    </div>
+  </div>
+  <div class="cc-panel-row">
+    <span class="cc-panel-label">{% translate 'Density' %}</span>
+    <div class="cc-segment" data-pref="density">
+      <button type="button" data-value="compact">{% icon "rows-3" %}<span>{% translate 'Compact' %}</span></button>
+      <button type="button" data-value="comfortable">{% icon "rows-3" %}<span>{% translate 'Default' %}</span></button>
+      <button type="button" data-value="spacious">{% icon "rows-3" %}<span>{% translate 'Roomy' %}</span></button>
+    </div>
+  </div>
+  <div class="cc-theme-grid" data-pref="theme">
+    {% for theme in cc.themes %}
+      <button type="button" class="cc-theme-card" data-value="{{ theme.key }}" style="--s0:{{ theme.swatch.0 }};--s1:{{ theme.swatch.1 }};--s2:{{ theme.swatch.2 }};--s3:{{ theme.swatch.3 }}">
+        <span class="cc-theme-mini cc-mini-{{ theme.layout }}"><i></i><i></i><i></i><i></i></span>
+        <span class="cc-theme-name"><b>{{ theme.label }}</b><small>{{ theme.note }}</small></span>
+      </button>
+    {% endfor %}
+  </div>
+</dialog>
+{% endif %}
+{% if cc.shortcuts %}
+<dialog class="cc-dialog cc-keys" data-keys aria-label="{% translate 'Keyboard shortcuts' %}">
+  <div class="cc-panel-head">
+    <div><b>{% translate 'Keyboard shortcuts' %}</b><small>{% translate 'Press ? anywhere to open this.' %}</small></div>
+    <button type="button" class="cc-icon-btn" data-close aria-label="{% translate 'Close' %}">{% icon "x" %}</button>
+  </div>
+  <div class="cc-keys-grid">
+    <section>
+      <h3>{% translate 'Anywhere' %}</h3>
+      <dl>
+        <div><dt><kbd data-mod>⌘</kbd><kbd>K</kbd></dt><dd>{% translate 'Command palette' %}</dd></div>
+        <div><dt><kbd>/</kbd></dt><dd>{% translate 'Focus search' %}</dd></div>
+        <div><dt><kbd>g</kbd><kbd>d</kbd></dt><dd>{% translate 'Go to dashboard' %}</dd></div>
+        <div><dt><kbd>g</kbd><kbd>s</kbd></dt><dd>{% translate 'Go to site' %}</dd></div>
+        <div><dt><kbd>t</kbd></dt><dd>{% translate 'Theme panel' %}</dd></div>
+        <div><dt><kbd>[</kbd></dt><dd>{% translate 'Toggle menu' %}</dd></div>
+        <div><dt><kbd>?</kbd></dt><dd>{% translate 'This list' %}</dd></div>
+      </dl>
+    </section>
+    <section>
+      <h3>{% translate 'Lists' %}</h3>
+      <dl>
+        <div><dt><kbd>j</kbd><kbd>k</kbd></dt><dd>{% translate 'Next / previous row' %}</dd></div>
+        <div><dt><kbd>x</kbd></dt><dd>{% translate 'Select row' %}</dd></div>
+        <div><dt><kbd>↵</kbd> <kbd>o</kbd></dt><dd>{% translate 'Open row' %}</dd></div>
+        <div><dt><kbd>n</kbd></dt><dd>{% translate 'Add new' %}</dd></div>
+        <div><dt><kbd>f</kbd></dt><dd>{% translate 'Filters' %}</dd></div>
+        <div><dt><kbd>←</kbd><kbd>→</kbd></dt><dd>{% translate 'Previous / next page' %}</dd></div>
+      </dl>
+    </section>
+    <section>
+      <h3>{% translate 'Forms' %}</h3>
+      <dl>
+        <div><dt><kbd data-mod>⌘</kbd><kbd>S</kbd></dt><dd>{% translate 'Save and continue' %}</dd></div>
+        <div><dt><kbd data-mod>⌘</kbd><kbd>↵</kbd></dt><dd>{% translate 'Save' %}</dd></div>
+        <div><dt><kbd>esc</kbd></dt><dd>{% translate 'Leave field' %}</dd></div>
+      </dl>
+    </section>
+  </div>
+</dialog>
+{% endif %}
+<dialog class="cc-dialog cc-confirm" data-confirm-dialog>
+  <form method="dialog">
+    <div class="cc-confirm-icon">{% icon "triangle-exclamation-point" %}</div>
+    <p data-confirm-text></p>
+    <div class="cc-confirm-buttons">
+      <button value="no" class="cc-btn">{% translate 'Cancel' %}</button>
+      <button value="yes" class="cc-btn cc-btn-primary" data-confirm-yes>{% translate 'Continue' %}</button>
+    </div>
+  </form>
+</dialog>

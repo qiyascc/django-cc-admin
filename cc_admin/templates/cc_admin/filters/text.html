@@ -1,0 +1,5 @@
+{% load i18n cc_admin %}
+<details class="cc-filter cc-filter-input" data-filter-title="{{ title }}" open>
+  <summary>{{ title|capfirst }}</summary>
+  <label class="cc-input-icon">{% icon "search" %}<input type="text" name="{{ spec.parameter_name }}" value="{{ spec.value|default:'' }}" placeholder="{% translate 'Contains…' %}"></label>
+</details>

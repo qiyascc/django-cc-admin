@@ -1,0 +1,4 @@
+<section class="cc-span-{{ widget.width }}{% if not widget.spec.bare %} cc-card{% endif %} cc-widget-html">
+  {% if widget.spec.title %}{% include "cc_admin/widgets/_head.html" %}{% endif %}
+  {{ widget.data.html|safe }}
+</section>

@@ -1,0 +1,36 @@
+{% load i18n cc_admin %}
+{% if result_hidden_fields %}<div class="hiddenfields">{% for item in result_hidden_fields %}{{ item }}{% endfor %}</div>{% endif %}
+{% if results %}
+<div class="results cc-table-wrap" data-results>
+<table id="result_list" class="cc-table cc-results">
+<thead>
+<tr>
+{% for header in result_headers %}
+<th scope="col"{{ header.class_attrib }} data-col="{{ forloop.counter0 }}">
+  {% if header.sortable %}
+    <div class="cc-th">
+      <a role="button" href="{{ header.url_primary }}" class="cc-sort">{{ header.text|capfirst }}{% if header.sorted %}{% if header.ascending %}{% icon "arrow-up" "cc-sort-icon" %}{% else %}{% icon "arrow-down" "cc-sort-icon" %}{% endif %}{% if num_sorted_fields > 1 %}<sup>{{ header.sort_priority }}</sup>{% endif %}{% else %}{% icon "chevrons-up-down" "cc-sort-icon cc-sort-idle" %}{% endif %}</a>
+      {% if header.sorted %}<a class="cc-sort-remove sortremove" href="{{ header.url_remove }}" title="{% translate 'Remove from sorting' %}">{% icon "x" %}</a>{% endif %}
+    </div>
+  {% else %}
+    <div class="cc-th"><span>{{ header.text|capfirst }}</span></div>
+  {% endif %}
+</th>{% endfor %}
+</tr>
+</thead>
+<tbody>
+{% for result in results %}
+{% if result.form and result.form.non_field_errors %}<tr class="cc-row-error"><td colspan="{{ result|length }}">{{ result.form.non_field_errors }}</td></tr>{% endif %}
+<tr data-row>{% for item in result %}{{ item }}{% endfor %}</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% else %}
+<div class="cc-empty-state">
+  <span class="cc-empty-icon">{% icon "search" %}</span>
+  <b>{% blocktranslate with name=cl.opts.verbose_name_plural %}No {{ name }} found{% endblocktranslate %}</b>
+  <p>{% if cl.query or cl.has_active_filters %}{% translate 'Try a different search or clear the filters.' %}{% else %}{% translate 'Nothing has been added yet.' %}{% endif %}</p>
+  {% if cl.query or cl.has_active_filters %}<a href="?" class="cc-btn">{% translate 'Clear search and filters' %}</a>{% endif %}
+</div>
+{% endif %}

@@ -1,0 +1,4 @@
+{% load cc_admin %}
+<nav class="cc-tabs cc-tabs-page" aria-label="Sections">
+  {% for tab in tabs %}<a href="{{ tab.url }}" class="cc-tab{% if tab.active %} is-active{% endif %}">{% if tab.icon %}{% icon tab.icon %}{% endif %}<span>{{ tab.title }}</span>{% if tab.badge %}<em class="cc-badge cc-tone-neutral">{{ tab.badge }}</em>{% endif %}</a>{% endfor %}
+</nav>

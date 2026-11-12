@@ -1,0 +1,49 @@
+{% load i18n cc_admin %}
+<aside class="cc-side" id="nav-sidebar" data-side>
+  <div class="cc-brand">
+    <a href="{% url 'admin:index' %}" class="cc-brand-link">
+      {% if cc.logo %}
+        <img src="{{ cc.logo.light }}" class="cc-logo cc-only-light" alt="{{ cc.header }}"><img src="{{ cc.logo.dark }}" class="cc-logo cc-only-dark" alt="{{ cc.header }}">
+      {% else %}
+        <span class="cc-brand-mark">{% if cc.icon %}<img src="{{ cc.icon.light }}" class="cc-only-light" alt=""><img src="{{ cc.icon.dark }}" class="cc-only-dark" alt="">{% else %}{{ cc.header|cc_initials }}{% endif %}</span>
+        <span class="cc-brand-text"><b>{{ cc.header }}</b>{% if cc.subheader %}<small>{{ cc.subheader }}</small>{% endif %}</span>
+      {% endif %}
+    </a>
+    <button type="button" class="cc-icon-btn cc-side-close" data-side-close aria-label="{% translate 'Close menu' %}">{% icon "x" %}</button>
+  </div>
+  {% if cc.sidebar_search %}
+    <label class="cc-side-search">{% icon "search" %}<input type="search" placeholder="{% translate 'Filter menu' %}" data-nav-filter autocomplete="off"></label>
+  {% endif %}
+  <nav class="cc-nav" aria-label="{% translate 'Main navigation' %}">
+    {% url 'admin:index' as home_url %}
+    <div class="cc-nav-group cc-nav-root">
+      <ul>
+        <li><a class="cc-nav-item{% if request.path == home_url %} is-active{% endif %}" href="{{ home_url }}" data-nav-item title="{% translate 'Dashboard' %}">{% icon "layout-dashboard" %}<span>{% translate 'Dashboard' %}</span></a></li>
+      </ul>
+    </div>
+    {% if cc.pinned %}
+      <div class="cc-nav-group cc-nav-pinned" data-pinned hidden>
+        <button type="button" class="cc-nav-title" data-group-toggle aria-expanded="true">{% icon "star" %}<span>{% translate 'Pinned' %}</span>{% icon "chevron-down" "cc-caret" %}</button>
+        <ul data-pinned-list></ul>
+      </div>
+    {% endif %}
+    {% for group in cc.nav %}
+      <div class="cc-nav-group{% if group.active %} is-active{% endif %}" data-group="{{ group.key }}">
+        {% if group.title %}<button type="button" class="cc-nav-title" data-group-toggle aria-expanded="true"{% if not group.collapsible %} data-static{% endif %}>{% icon group.icon %}<span>{{ group.title }}</span>{% icon "chevron-down" "cc-caret" %}</button>{% endif %}
+        <ul>
+          {% for item in group.items %}
+            <li>
+              <a class="cc-nav-item{% if item.active %} is-active{% endif %}" href="{{ item.url }}"{% if item.external %} target="_blank" rel="noopener"{% endif %} data-nav-item{% if item.model %} data-key="{{ item.model }}"{% endif %} title="{{ item.title }}">{% icon item.icon %}<span>{{ item.title }}</span>{% if item.badge %}<em class="cc-badge cc-tone-{{ item.badge_variant|default:'accent' }}">{{ item.badge }}</em>{% endif %}</a>
+              {% if item.add_url %}<a class="cc-nav-add" href="{{ item.add_url }}" title="{% blocktranslate with name=item.title %}Add {{ name }}{% endblocktranslate %}" tabindex="-1">{% icon "plus" %}</a>{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endfor %}
+  </nav>
+  <div class="cc-side-foot">
+    {% if cc.switcher %}<button type="button" class="cc-side-btn" data-theme-open>{% icon "palette" %}<span>{{ cc.theme.label }}</span></button>{% endif %}
+    <button type="button" class="cc-icon-btn cc-side-collapse" data-side-collapse aria-label="{% translate 'Collapse menu' %}">{% icon "chevrons-up-down" %}</button>
+  </div>
+</aside>
+<div class="cc-scrim" data-side-close></div>

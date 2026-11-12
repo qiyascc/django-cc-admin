@@ -1,0 +1,16 @@
+{% load cc_admin %}
+<section class="cc-card cc-span-{{ widget.width }} cc-widget-table">
+  {% include "cc_admin/widgets/_head.html" %}
+  <div class="cc-table-wrap">
+    <table class="cc-table">
+      {% if widget.data.headers %}<thead><tr>{% for h in widget.data.headers %}<th{% with a=widget.data.align|cc_get_index:forloop.counter0 %}{% if a %} class="cc-al-{{ a }}"{% endif %}{% endwith %}>{{ h }}</th>{% endfor %}</tr></thead>{% endif %}
+      <tbody>
+        {% for row in widget.data.rows %}
+          <tr>{% for cell in row %}<td{% with a=widget.data.align|cc_get_index:forloop.counter0 %}{% if a %} class="cc-al-{{ a }}"{% endif %}{% endwith %}>{% if cell.badge %}<span class="cc-badge cc-tone-{{ cell.badge }}">{{ cell.text }}</span>{% elif cell.link %}<a href="{{ cell.link }}">{{ cell.text }}</a>{% elif cell.html %}{{ cell.html|safe }}{% else %}{{ cell.text }}{% endif %}{% if cell.sub %}<small>{{ cell.sub }}</small>{% endif %}</td>{% endfor %}</tr>
+        {% empty %}
+          <tr><td class="cc-muted" colspan="{{ widget.data.headers|length|default:1 }}">Nothing here yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>

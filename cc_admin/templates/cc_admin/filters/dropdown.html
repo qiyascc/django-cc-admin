@@ -1,0 +1,7 @@
+{% load i18n %}
+<details class="cc-filter" data-filter-title="{{ title }}" open>
+  <summary>{{ title|capfirst }}</summary>
+  <label class="cc-select"><select data-filter-select aria-label="{{ title }}">
+    {% for choice in choices %}<option value="{{ choice.query_string|iriencode }}"{% if choice.selected %} selected{% endif %}>{{ choice.display }}</option>{% endfor %}
+  </select></label>
+</details>

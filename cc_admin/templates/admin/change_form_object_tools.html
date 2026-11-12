@@ -1,0 +1,5 @@
+{% load i18n admin_urls cc_admin %}
+{% block object-tools-items %}
+  {% if cc.show_history %}{% url opts|admin_urlname:'history' original.pk|admin_urlquote as history_url %}<a href="{% add_preserved_filters history_url %}" class="cc-btn historylink">{% icon "rotate-ccw-clock" %}<span>{% translate "History" %}</span></a>{% endif %}
+  {% if has_absolute_url and cc.show_view_on_site %}<a href="{{ absolute_url }}" class="cc-btn viewsitelink" target="_blank" rel="noopener">{% icon "external-link" %}<span>{% translate "View on site" %}</span></a>{% endif %}
+{% endblock %}

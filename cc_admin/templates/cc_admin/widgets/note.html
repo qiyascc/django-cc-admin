@@ -1,0 +1,4 @@
+{% load cc_admin %}
+<section class="cc-note cc-tone-{{ widget.data.tone }} cc-span-{{ widget.width }}">
+  {% icon widget.spec.icon|default:"info" %}<div>{% if widget.spec.title %}<b>{{ widget.spec.title }}</b>{% endif %}<p>{{ widget.data.text }}</p></div>
+</section>
