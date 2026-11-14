@@ -8,3 +8,4 @@ build/
 example/static/
 .ruff_cache/
 example/.cache/
+docs/_build/

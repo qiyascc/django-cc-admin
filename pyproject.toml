@@ -39,6 +39,7 @@ all = ["channels>=4.0", "daphne>=4.0", "pywebpush>=2.0"]
 
 [project.urls]
 Homepage = "https://github.com/qiyascc/django-cc-admin"
+Documentation = "https://django-cc-admin.readthedocs.io/"
 Source = "https://github.com/qiyascc/django-cc-admin"
 Issues = "https://github.com/qiyascc/django-cc-admin/issues"
 Author = "https://theqiyas.cc"
