@@ -2,6 +2,7 @@
 
 | django-cc-admin | Django | Python |
 | --- | --- | --- |
+| 0.2.0 | 5.0, 5.1, 5.2, 6.0, 6.1 | 3.10, 3.11, 3.12, 3.13 |
 | 0.1.0 | 5.0, 5.1, 5.2, 6.0, 6.1 | 3.10, 3.11, 3.12, 3.13 |
 
 Django sets its own floor for Python: Django 5.0 to 5.2 run on Python 3.10 and newer, while Django 6.0 and 6.1 need Python 3.12 or newer. Pick a combination that Django itself supports.

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "django-cc-admin"
-version = "0.1.0"
+version = "0.2.0"
 description = "A modern skin and toolkit for the Django admin: 15 themes, a dashboard built from settings, live updates, notifications, a command palette and keyboard-first lists."
 readme = "README.md"
 license = "MIT"
