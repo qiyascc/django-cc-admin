@@ -142,6 +142,13 @@ CC_ADMIN = {
     "DASHBOARD": {
         "subtitle": "Here is how the store did over the last 30 days.",
         "widgets": [
+            {"type": "kpi", "title": "Won this month", "value": "shop.dashboard.month_progress", "fill": True, "tone": "blue"},
+            {"type": "kpi", "title": "Open orders", "value": "shop.dashboard.open_value", "fill": True, "tone": "olive", "link": "admin:shop_order_cc_board"},
+            {"type": "kpi", "title": "On the way", "value": "shop.dashboard.shipped_value", "fill": True, "tone": "rust"},
+            {"type": "kpi", "title": "Delivery rate", "value": "shop.dashboard.delivery_rate"},
+            {"type": "chart", "kind": "bar", "title": "Revenue won", "subtitle": "Last 12 months against the monthly target", "data": "shop.dashboard.month_revenue", "prefix": "$", "highlight": "last", "width": 8, "height": 230},
+            {"type": "progress", "layout": "row", "title": "Orders by stage", "subtitle": "Value in each stage", "items": "shop.dashboard.status_stages", "prefix": "$", "width": 4, "link": "admin:shop_order_cc_board", "link_text": "Board"},
+            {"type": "forecast", "title": "Next four months", "subtitle": "Commit is paid, likely adds pending, best case is everything open", "data": "shop.dashboard.projection", "prefix": "$", "note": "likely across four months", "unit": "orders"},
             {"type": "kpi", "title": "Revenue", "icon": "wallet", "value": "shop.dashboard.revenue", "link": "admin:shop_order_changelist"},
             {"type": "kpi", "title": "Orders", "icon": "receipt", "value": "shop.dashboard.orders"},
             {"type": "kpi", "title": "Average order", "icon": "chart-line", "value": "shop.dashboard.average_order", "decimals": 0},

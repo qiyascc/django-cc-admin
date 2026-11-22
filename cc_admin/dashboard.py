@@ -34,6 +34,7 @@ WIDTHS = {
     "html": 12,
     "note": 12,
     "apps": 12,
+    "forecast": 12,
 }
 
 
@@ -60,7 +61,7 @@ def default_widgets():
 def _kpi(spec, request):
     value = source(spec.get("value"), request)
     data = value if isinstance(value, dict) else {"value": value}
-    for key in ("delta", "delta_label", "spark", "footer", "prefix", "suffix", "tone"):
+    for key in ("delta", "delta_label", "spark", "footer", "prefix", "suffix", "tone", "progress", "progress_label"):
         if key not in data and key in spec:
             data[key] = source(spec[key], request)
     raw = data.get("value")
@@ -78,6 +79,9 @@ def _kpi(spec, request):
     elif delta:
         data["delta_tone"] = "flat"
         data["delta_text"] = str(delta)
+    progress = data.get("progress")
+    if isinstance(progress, (int, float)) or hasattr(progress, "as_tuple"):
+        data["progress_share"] = max(0.0, min(100.0, float(progress)))
     if data.get("spark"):
         data["spark_svg"] = charts.spark(data["spark"], height=spec.get("spark_height", 44))
     return data
@@ -93,7 +97,20 @@ def _chart(spec, request):
         return {"svg": charts.donut(items, prefix=prefix, suffix=suffix, center_label=spec.get("center_label", "total"))}
     labels, series = data.get("labels", []), data.get("series", [])
     if kind in ("bar", "stacked-bar"):
-        svg = charts.bar(labels, series, height=height, stacked=kind == "stacked-bar", prefix=prefix, suffix=suffix)
+        target = source(spec.get("target"), request)
+        if isinstance(data, dict) and target is None:
+            target = data.get("target")
+        svg = charts.bar(
+            labels,
+            series,
+            height=height,
+            stacked=kind == "stacked-bar",
+            prefix=prefix,
+            suffix=suffix,
+            target=target,
+            target_label=spec.get("target_label", "Target"),
+            highlight=spec.get("highlight"),
+        )
     else:
         svg = charts.line(
             labels,
@@ -131,6 +148,8 @@ def _items(spec, request):
         if spec["type"] == "progress":
             total = float(item.get("total", 100) or 1)
             item["share"] = max(0.0, min(100.0, float(item.get("value", 0)) / total * 100))
+            if "display" not in item and (spec.get("prefix") or spec.get("suffix")):
+                item["display"] = charts.compact(item.get("value", 0), spec.get("prefix", ""), spec.get("suffix", ""))
         out.append(item)
     return {"items": out}
 
@@ -266,6 +285,52 @@ def _tracker(spec, request):
     return {"rows": rows}
 
 
+SCENARIOS = (("commit", "Commit"), ("likely", "Likely"), ("best", "Best case"))
+
+
+def _forecast(spec, request):
+    data = source(spec.get("data"), request) or {}
+    periods = data.get("periods", data) if isinstance(data, dict) else data
+    names = dict(SCENARIOS)
+    names.update(spec.get("scenarios") or {})
+    prefix, suffix = spec.get("prefix", ""), spec.get("suffix", "")
+    chosen = spec.get("default", "likely")
+    rows = []
+    for period in periods or []:
+        values = {key: float(period.get(key) or 0) for key, _ in SCENARIOS}
+        values["likely"] = max(values["likely"], values["commit"])
+        values["best"] = max(values["best"], values["likely"])
+        items = []
+        for item in period.get("items", []):
+            item = dict(item)
+            if "link" in item:
+                item["url"] = conf.link(item["link"], request)
+            if "value" in item and "display" not in item:
+                number = charts._num(item["value"])
+                item["display"] = charts.compact(number, prefix, suffix, 0 if abs(number) < 1000 else None)
+            items.append(item)
+        rows.append({"label": period.get("label", ""), "values": values, "items": items, "count": period.get("count", len(items))})
+    peak = max((r["values"]["best"] for r in rows), default=0) or 1
+    for i, r in enumerate(rows):
+        v = r["values"]
+        r["index"] = i
+        r["empty"] = not v["best"]
+        r["best_h"] = round(v["best"] / peak * 100, 2)
+        r["mid_h"] = round(v["likely"] / v["best"] * 100, 2) if v["best"] else 0
+        r["in_h"] = round(v["commit"] / v["best"] * 100, 2) if v["best"] else 0
+        r["texts"] = {key: charts.compact(v[key], prefix, suffix) for key, _ in SCENARIOS}
+    totals = {key: charts.compact(sum(r["values"][key] for r in rows), prefix, suffix) for key, _ in SCENARIOS}
+    return {
+        "periods": rows,
+        "scenarios": [{"key": key, "label": names.get(key, label), "total": totals[key]} for key, label in SCENARIOS],
+        "chosen": chosen if chosen in names else "likely",
+        "total": totals.get(chosen, totals["likely"]),
+        "note": spec.get("note", ""),
+        "empty_text": spec.get("empty_text", "Nothing expected to close"),
+        "unit": spec.get("unit", "deals"),
+    }
+
+
 def _note(spec, request):
     return {"text": source(spec.get("text"), request), "tone": spec.get("tone", "info")}
 
@@ -292,6 +357,7 @@ BUILDERS = {
     "cohort": _cohort,
     "tracker": _tracker,
     "note": _note,
+    "forecast": _forecast,
 }
 
 

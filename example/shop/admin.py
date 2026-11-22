@@ -252,6 +252,14 @@ class OrderAdmin(ModelAdmin):
     list_horizontal_scrollbar_top = True
     readonly_fields = ["total"]
     list_select_related = ["customer"]
+    board_field = "status"
+    board_title = "customer__name"
+    board_subtitle = "board_line"
+    board_value = "total"
+    board_prefix = "$"
+    board_date = "created_at"
+    board_avatar = "customer__name"
+    board_tones = {"pending": "sand", "paid": "blue", "shipped": "plum", "delivered": "olive", "refunded": "neutral", "cancelled": "rust"}
     actions = ["mark_shipped"]
     actions_detail = ["print_invoice"]
     actions_submit_line = ["save_and_notify"]
@@ -264,6 +272,9 @@ class OrderAdmin(ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(n_items=Sum("items__quantity"))
+
+    def board_line(self, obj):
+        return f"{obj.number} · {obj.get_channel_display()}"
 
     @display(description="Customer", header=True, ordering="customer__name")
     def customer_link(self, obj):

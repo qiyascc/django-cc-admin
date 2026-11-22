@@ -165,8 +165,24 @@ These keys can also sit on the widget itself instead of in the returned dict. On
 | --- | --- |
 | `decimals` | Decimal places for numbers under 1000. By default whole numbers show none and others show one. |
 | `inverse` | `True` for numbers where going down is good, like refunds or response time. The colours of the change swap. |
-| `tone` | Tints the card: `accent`, `success`, `warning`, `danger`, `info` or `neutral`. |
+| `tone` | Tints the card: `accent`, `success`, `warning`, `danger`, `info`, `neutral`, `blue`, `olive`, `rust`, `sand` or `plum`. |
+| `fill` | `True` paints the whole card in its tone instead of only the icon. Light themes use a soft wash, Volt uses the full muted colour. |
+| `color` | Any CSS colour for the tone, when the named ones don't fit. |
 | `spark_height` | Height of the sparkline in pixels. Default 44. |
+
+A card can also show progress towards a goal. Return `progress` as a number from 0 to 100 and `progress_label` for the text under the bar:
+
+```python
+def won_this_month(request):
+    value = 30200
+    target = 57000
+    share = value / target * 100
+    return {"value": value, "prefix": "$", "progress": share, "progress_label": f"{share:.0f}% of the $57,000 target"}
+```
+
+```python
+{"type": "kpi", "title": "Won this month", "value": "shop.dashboard.won_this_month", "fill": True, "tone": "blue"}
+```
 
 ### chart
 
@@ -218,6 +234,9 @@ Other chart keys:
 | `height` | Height of the plot in pixels. Default 240. |
 | `smooth` | Curved lines for `line` and `area`. Default `True`. |
 | `center_label` | The word under the total in a donut. Default `"total"`. |
+| `target` | Bar charts only. Draws a dashed line at this value with a label, and adds it to the legend. The data dict can carry `target` too. |
+| `target_label` | The word in front of the target value. Default `"Target"`. |
+| `highlight` | Bar charts only. Paints one bar in the theme's second chart colour: an index, `"last"` (the current month, say) or `"max"`. |
 | `summary` | Big numbers above the plot: a list of `{"label", "value", "note"}`, or a function that returns one. |
 
 ```python
@@ -291,7 +310,59 @@ Horizontal bars, each showing a share of a total.
 ]
 ```
 
-`value` and `total` make the bar (`total` defaults to 100). `display` is the text shown instead of the raw value, `meta` adds a muted note and `tone` colours the bar.
+`value` and `total` make the bar (`total` defaults to 100). `display` is the text shown instead of the raw value, `meta` adds a muted note and `tone` colours the bar. `color` takes any CSS colour, `link` makes the label a link, and `prefix` or `suffix` on the widget format the values when there is no `display`.
+
+`"layout": "row"` puts each item on one line: the label with its note under it, the bar in the middle and the value on the right. It suits pipeline stages:
+
+```python
+{"type": "progress", "layout": "row", "title": "Orders by stage", "subtitle": "Value in each stage", "items": "shop.dashboard.status_stages", "prefix": "$", "width": 4, "link": "admin:shop_order_cc_board", "link_text": "Board"}
+```
+
+```python
+[
+    {"label": "Pending", "meta": "41 orders", "value": 11400, "total": 571000, "tone": "sand"},
+    {"label": "Delivered", "meta": "1814 orders", "value": 571000, "total": 571000, "tone": "accent"},
+]
+```
+
+### forecast
+
+What is expected to come in over the next periods, in three scenarios. Each period is drawn as nested bars: the outer one is the best case, the middle one likely and the inner one commit. Buttons switch the headline total between the three, and a card under each bar lists the biggest items.
+
+```python
+{"type": "forecast", "title": "Next four months", "data": "shop.dashboard.projection", "prefix": "$", "note": "likely across four months", "unit": "orders"}
+```
+
+```python
+def projection(request):
+    return {
+        "periods": [
+            {
+                "label": "Nov",
+                "commit": 33000,
+                "likely": 48000,
+                "best": 60000,
+                "items": [{"title": "Tural Costa", "sub": "NW-25806 · Paid", "value": 1000, "link": "/admin/shop/order/12/change/"}],
+            },
+            {"label": "Dec", "commit": 27000, "likely": 40000, "best": 50000, "items": []},
+        ]
+    }
+```
+
+A list of periods works too, without the outer dict. `likely` is never drawn below `commit`, and `best` never below `likely`.
+
+| Key | Meaning |
+| --- | --- |
+| `default` | The scenario shown first: `commit`, `likely` (the default) or `best`. |
+| `scenarios` | New names for the buttons, for example `{"commit": "Signed", "best": "Pipeline"}`. |
+| `prefix`, `suffix` | Added to every amount. |
+| `note` | Muted text after the headline total. |
+| `unit` | The word after each period's count. Default `"deals"`. |
+| `empty_text` | Shown in a period with no items. Default "Nothing expected to close". |
+| `height` | Height of the bars in pixels. Default 180. |
+| `periods` | `False` hides the cards under the bars. |
+
+The widget is full width by default.
 
 ### links
 

@@ -327,3 +327,82 @@ class ChartsTest(TestCase):
         self.assertIn("<circle", charts.donut([("a", 1), ("b", 3)]))
         self.assertIn("<svg", charts.spark([1, 4, 2]))
         self.assertEqual(charts.spark([]), "")
+
+
+class BoardAndForecastTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed", orders=60, verbosity=0)
+        cls.user = get_user_model().objects.get(username="admin")
+
+    def setUp(self):
+        self.client.force_login(self.user)
+
+    def test_board_groups_orders_by_status(self):
+        response = self.client.get(reverse("admin:shop_order_cc_board"))
+        self.assertEqual(response.status_code, 200)
+        for value in ("pending", "paid", "shipped", "delivered"):
+            self.assertContains(response, f'data-col="{value}"')
+        self.assertContains(response, "data-can-move")
+        self.assertContains(response, 'class="cc-viewtabs"')
+
+    def test_list_links_to_the_board(self):
+        response = self.client.get(reverse("admin:shop_order_changelist"))
+        self.assertContains(response, reverse("admin:shop_order_cc_board"))
+
+    def test_board_keeps_list_filters(self):
+        response = self.client.get(reverse("admin:shop_order_cc_board") + "?status__exact=paid")
+        cols = {c["value"]: c["count"] for c in response.context["columns"]}
+        self.assertEqual(cols["pending"], 0)
+        self.assertEqual(cols["paid"], Order.objects.filter(status="paid").count())
+
+    def test_move_changes_the_field_and_logs_it(self):
+        order = Order.objects.filter(status="pending").first()
+        response = self.client.post(reverse("admin:shop_order_cc_board_move"), {"pk": order.pk, "value": "paid"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["ok"])
+        self.assertEqual(data["label"], "Paid")
+        self.assertIn("paid", data["totals"])
+        order.refresh_from_db()
+        self.assertEqual(order.status, "paid")
+        entry = LogEntry.objects.order_by("-action_time").first()
+        self.assertEqual(entry.object_id, str(order.pk))
+
+    def test_move_rejects_unknown_values_and_get(self):
+        order = Order.objects.first()
+        url = reverse("admin:shop_order_cc_board_move")
+        self.assertEqual(self.client.post(url, {"pk": order.pk, "value": "lost"}).status_code, 400)
+        self.assertEqual(self.client.post(url, {"pk": 0, "value": "paid"}).status_code, 404)
+        self.assertEqual(self.client.get(url).status_code, 405)
+
+    def test_move_needs_change_permission(self):
+        from django.contrib.auth.models import Permission
+
+        viewer = get_user_model().objects.create_user("viewer", password="x", is_staff=True)
+        viewer.user_permissions.add(Permission.objects.get(codename="view_order"))
+        self.client.force_login(viewer)
+        response = self.client.get(reverse("admin:shop_order_cc_board"))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "data-can-move")
+        order = Order.objects.filter(status="pending").first()
+        response = self.client.post(reverse("admin:shop_order_cc_board_move"), {"pk": order.pk, "value": "paid"})
+        self.assertEqual(response.status_code, 403)
+        order.refresh_from_db()
+        self.assertEqual(order.status, "pending")
+
+    def test_models_without_board_field_have_no_board(self):
+        response = self.client.get(reverse("admin:shop_product_changelist"))
+        self.assertNotContains(response, 'class="cc-viewtabs"')
+        self.assertEqual(self.client.get("/admin/shop/product/cc-board/").status_code, 403)
+
+    def test_dashboard_has_forecast_target_and_tiles(self):
+        response = self.client.get(reverse("admin:index"))
+        for name in ("data-forecast", "cc-chart-target", "cc-kpi cc-span-3 cc-tone-blue cc-fill", "cc-kpi-progress", "cc-bars-row", "is-hi"):
+            self.assertContains(response, name)
+
+    def test_bar_chart_target_and_highlight(self):
+        html = charts.bar(["a", "b", "c"], [{"name": "x", "values": [1, 5, 2]}], target=4, highlight="max")
+        self.assertIn("cc-chart-target", html)
+        self.assertIn('class="cc-bar is-hi" data-i="1"', html)
+        self.assertIn("cc-legend-target", html)

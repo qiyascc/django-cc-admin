@@ -1920,6 +1920,120 @@
       .catch(function () { toast("Could not change push for this device", "error"); pushStatus(); });
   });
 
+  $$("[data-forecast]").forEach(function (box) {
+    on(box, "click", function (e) {
+      var b = e.target.closest("[data-scenario]");
+      if (!b) return;
+      var key = b.dataset.scenario;
+      $$("[data-scenario]", box).forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      var total = $("[data-forecast-total]", box);
+      if (total) total.textContent = b.dataset.total;
+      $$("[data-forecast-value]", box).forEach(function (v) { v.textContent = v.dataset[key] || ""; });
+      box.dataset.scenario = key;
+    });
+  });
+
+  $$("[data-board]").forEach(function (board) {
+    var canMove = board.hasAttribute("data-can-move");
+    var dragged = null;
+    var filter = $("[data-board-filter]");
+    if (filter) on(filter, "input", function () {
+      var q = filter.value.trim().toLowerCase();
+      $$("[data-card]", board).forEach(function (c) { c.hidden = !!q && c.textContent.toLowerCase().indexOf(q) < 0; });
+    });
+    function cols() { return $$("[data-col]", board); }
+    function refreshEmpty(col) {
+      var cards = $("[data-cards]", col);
+      var empty = $("[data-empty]", cards);
+      var has = $$("[data-card]", cards).length > 0;
+      if (has && empty) cards.removeChild(empty);
+      if (!has && !empty) {
+        var d = document.createElement("div");
+        d.className = "cc-board-empty";
+        d.setAttribute("data-empty", "");
+        d.textContent = board.dataset.emptyText || "Nothing here";
+        cards.appendChild(d);
+      }
+    }
+    function move(card, col) {
+      var from = card.closest("[data-col]");
+      if (!col || col === from) return;
+      var cards = $("[data-cards]", col);
+      cards.insertBefore(card, cards.firstChild);
+      refreshEmpty(from);
+      refreshEmpty(col);
+      card.classList.add("is-saving");
+      var body = new URLSearchParams();
+      body.set("pk", card.dataset.card);
+      body.set("value", col.dataset.col);
+      var token = $("input[name=csrfmiddlewaretoken]", board);
+      fetch(board.dataset.moveUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "X-CSRFToken": token ? token.value : "", "Content-Type": "application/x-www-form-urlencoded", "X-Requested-With": "XMLHttpRequest" },
+        body: body.toString()
+      })
+        .then(function (r) { return r.json().then(function (d) { if (!r.ok || !d.ok) throw new Error(d.error || "failed"); return d; }); })
+        .then(function (d) {
+          card.classList.remove("is-saving");
+          Object.keys(d.totals || {}).forEach(function (k) {
+            var c = cols().filter(function (x) { return x.dataset.col === k; })[0];
+            if (!c) return;
+            $("[data-col-count]", c).textContent = d.totals[k].count;
+            $("[data-col-sum]", c).textContent = d.totals[k].sum;
+          });
+          toast((board.dataset.movedText || "Moved to") + " " + d.label);
+        })
+        .catch(function () {
+          card.classList.remove("is-saving");
+          var back = $("[data-cards]", from);
+          back.insertBefore(card, back.firstChild);
+          refreshEmpty(from);
+          refreshEmpty(col);
+          toast(board.dataset.failText || "Could not move the card", "error");
+        });
+    }
+    if (!canMove) return;
+    on(board, "dragstart", function (e) {
+      var card = e.target.closest && e.target.closest("[data-card]");
+      if (!card) return;
+      dragged = card;
+      card.classList.add("is-dragging");
+      e.dataTransfer.effectAllowed = "move";
+      try { e.dataTransfer.setData("text/plain", card.dataset.card); } catch (err) {}
+    });
+    on(board, "dragend", function () {
+      if (dragged) dragged.classList.remove("is-dragging");
+      dragged = null;
+      cols().forEach(function (c) { c.classList.remove("is-over"); });
+    });
+    on(board, "dragover", function (e) {
+      var col = e.target.closest && e.target.closest("[data-col]");
+      if (!col || !dragged) return;
+      e.preventDefault();
+      cols().forEach(function (c) { c.classList.toggle("is-over", c === col); });
+    });
+    on(board, "drop", function (e) {
+      var col = e.target.closest && e.target.closest("[data-col]");
+      if (!col || !dragged) return;
+      e.preventDefault();
+      col.classList.remove("is-over");
+      move(dragged, col);
+    });
+    on(board, "keydown", function (e) {
+      var card = e.target.closest && e.target.closest("[data-card]");
+      if (!card || e.target !== card) return;
+      if (e.key === "Enter") { var a = $("a", card); if (a) a.click(); return; }
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      var list = cols();
+      var i = list.indexOf(card.closest("[data-col]")) + (e.key === "ArrowRight" ? 1 : -1);
+      if (i < 0 || i >= list.length) return;
+      move(card, list[i]);
+      card.focus();
+    });
+  });
+
   applyPrefs(prefs);
   applyLook();
 })();

@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+**Look**
+
+- Volt, a dark theme with smoked glass panels over a warm backdrop, muted tile colours, lime pill buttons, underlined page titles and a soft blur as each page opens.
+- New tones for cards, bars and columns: `blue`, `olive`, `rust`, `sand` and `plum`.
+
+**Dashboard**
+
+- KPI cards can be filled with their tone (`fill`), take any colour (`color`) and show progress towards a goal (`progress`, `progress_label`).
+- Bar charts draw a target line (`target`, `target_label`), can highlight one bar (`highlight`) and grow in when the page loads.
+- Progress widgets have a one line `row` layout for pipeline stages.
+- A `forecast` widget with commit, likely and best case scenarios and the biggest items per period.
+
+**Lists**
+
+- A board view for any model with a status or stage field: columns per value, drag and drop or arrow keys to move cards, column counts and totals, the list's own filters, permission checks and history entries.
+
 ## 0.1.0
 
 Released on 2026-11-12. The first public release.

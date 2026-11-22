@@ -1,8 +1,8 @@
 # Themes
 
-django-cc-admin ships fifteen themes. They are more than colour swaps: each one has its own layout, type and shape, and most come in a light and a dark version. You choose the default for the site. Every user can then pick their own from the appearance panel, unless you turn the switcher off.
+django-cc-admin ships sixteen themes. They are more than colour swaps: each one has its own layout, type and shape, and most come in a light and a dark version. You choose the default for the site. Every user can then pick their own from the appearance panel, unless you turn the switcher off.
 
-## The fifteen themes
+## The sixteen themes
 
 | Key | Name | Layout | Modes | Character |
 | --- | --- | --- | --- | --- |
@@ -20,6 +20,7 @@ django-cc-admin ships fifteen themes. They are more than colour swaps: each one 
 | `rose` | Rose | floating | light, dark | Soft pink, round corners, pill buttons. |
 | `ocean` | Ocean | icon rail | light, dark | Teal depths. |
 | `classic` | Classic | sidebar | light | A desktop from 1995. |
+| `volt` | Volt | sidebar | dark | Smoked glass over a warm dark backdrop, muted blue, olive and rust tiles, lime buttons, underlined titles and soft blur when a page opens. |
 | `cc` | CC | sidebar | dark, light | Ink and ice blue, the look of theqiyas.cc. |
 
 The four layouts are:

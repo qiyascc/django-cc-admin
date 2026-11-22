@@ -6,7 +6,7 @@ django-cc-admin is a new skin and a set of tools for the Django admin. You add o
 :alt: The dashboard of the example shop in the Aurora theme
 ```
 
-Version {{ version }} works with Django 5.0, 5.1, 5.2, 6.0 and 6.1 on Python 3.10 and newer. Everything it needs ships in the package: fifteen themes, fifteen fonts and more than two thousand Lucide icons. Nothing is loaded from a CDN.
+Version {{ version }} works with Django 5.0, 5.1, 5.2, 6.0 and 6.1 on Python 3.10 and newer. Everything it needs ships in the package: sixteen themes, fifteen fonts and more than two thousand Lucide icons. Nothing is loaded from a CDN.
 
 ```bash
 pip install django-cc-admin
@@ -35,7 +35,7 @@ From `django-admin startproject` to a themed admin with a dashboard, a sidebar a
 :link: guides/themes
 :link-type: doc
 
-The fifteen themes, the switcher every user gets, and how to change colours, fonts and corners or build a theme of your own.
+The sixteen themes, the switcher every user gets, and how to change colours, fonts and corners or build a theme of your own.
 :::
 
 :::{grid-item-card} Dashboard
@@ -78,7 +78,7 @@ Every key of the `CC_ADMIN` setting with its type, its default and what it chang
 
 Once `cc_admin` is installed, every page of the admin changes. You do not need to touch your admin classes to get these:
 
-- A new look in one of fifteen themes, with light, dark and automatic modes and three densities. Each user picks their own from the user menu or by pressing {kbd}`t`.
+- A new look in one of sixteen themes, with light, dark and automatic modes and three densities. Each user picks their own from the user menu or by pressing {kbd}`t`.
 - A dashboard on the admin index page with counts for your models, recent changes and the records you opened lately.
 - A sidebar with a filter box, icons for every model and a star to pin the models you use most.
 - A command palette on {kbd}`Ctrl+K` (or {kbd}`⌘+K` on a Mac) that jumps to any model, searches records and adds new ones.
@@ -118,6 +118,7 @@ guides/dashboard
 :caption: Lists and forms
 
 guides/model-admin
+guides/board
 guides/actions
 guides/filters
 guides/sections

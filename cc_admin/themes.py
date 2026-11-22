@@ -60,6 +60,7 @@ BUILTIN = [
     Theme("rose", "Rose", "Soft pink, round corners", "float", ("light", "dark"), ("#fdf2f6", "#ffffff", "#db2777", "#3b0a22")),
     Theme("ocean", "Ocean", "Teal depths, icon rail", "rail", ("light", "dark"), ("#f0f7f8", "#ffffff", "#0e8a8a", "#0b2a33")),
     Theme("classic", "Classic", "A desktop from 1995", "sidebar", ("light",), ("#008080", "#c0c0c0", "#000080", "#000000")),
+    Theme("volt", "Volt", "Smoked glass, muted tiles, lime", "sidebar", ("dark",), ("#1a1918", "#2a2926", "#c6f24e", "#f3f2ec")),
     Theme("cc", "CC", "Ink and ice blue, the theqiyas.cc look", "sidebar", ("dark", "light"), ("#0c1014", "#12181e", "#8fb4cc", "#edf1f3")),
 ]
 

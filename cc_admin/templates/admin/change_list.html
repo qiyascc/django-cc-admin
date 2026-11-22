@@ -58,6 +58,7 @@
 
 {% block content %}
 <div id="content-main">
+  {% if cc_board_url and not is_popup %}<nav class="cc-viewtabs" aria-label="{% translate 'View' %}"><a href="{{ request.get_full_path }}" class="is-active" aria-current="page">{% translate 'List' %}</a><a href="{{ cc_board_url }}{{ cl.get_query_string }}">{% translate 'Board' %}</a></nav>{% endif %}
   {% if cc_model_admin.change_list_before_template %}{% include cc_model_admin.change_list_before_template %}{% endif %}
   {% if cl.formset and cl.formset.errors %}
     <p class="errornote">{% blocktranslate count counter=cl.formset.total_error_count %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktranslate %}</p>

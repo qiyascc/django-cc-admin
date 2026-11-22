@@ -87,6 +87,16 @@ class ModelAdminMixin:
     change_list_after_template = None
     change_form_before_template = None
     change_form_after_template = None
+    board_field = None
+    board_title = None
+    board_subtitle = None
+    board_value = None
+    board_prefix = ""
+    board_suffix = ""
+    board_date = None
+    board_avatar = None
+    board_tones = {}
+    board_limit = 50
 
     def _cc_action_func(self, name):
         if callable(name):
@@ -160,6 +170,8 @@ class ModelAdminMixin:
         urls = [
             path("cc-export/", wrap(self.cc_export_view), name="%s_%s_cc_export" % info),
             path("cc-sort/", wrap(self.cc_sort_view), name="%s_%s_cc_sort" % info),
+            path("cc-board/", wrap(self.cc_board_view), name="%s_%s_cc_board" % info),
+            path("cc-board/move/", wrap(self.cc_board_move_view), name="%s_%s_cc_board_move" % info),
             path("cc-action/<slug:slug>/", wrap(self.cc_action_view), name="%s_%s_cc_action" % info),
             path(
                 "<path:object_id>/cc-action/<slug:slug>/",
@@ -226,6 +238,170 @@ class ModelAdminMixin:
                     setattr(obj, field, value)
                     obj.save(update_fields=[field])
         return JsonResponse({"ok": True})
+
+    def _cc_board_field(self):
+        if not self.board_field:
+            return None
+        return self.opts.get_field(self.board_field)
+
+    def cc_board_columns(self, request):
+        field = self._cc_board_field()
+        if field.is_relation:
+            related = field.related_model._default_manager.all()
+            columns = [(obj.pk, str(obj)) for obj in related[:30]]
+        else:
+            columns = [(value, str(label)) for value, label in field.flatchoices]
+        tones = self.board_tones or {}
+        palette = ["neutral", "sand", "blue", "plum", "olive", "rust", "info", "success"]
+        out = []
+        for i, (value, label) in enumerate(columns):
+            tone = tones.get(value, tones.get(str(value), palette[i % len(palette)]))
+            entry = {"value": str(value), "raw": value, "label": label}
+            if isinstance(tone, str) and tone.startswith(("#", "rgb", "hsl", "var(")):
+                entry["color"] = tone
+            else:
+                entry["tone"] = tone
+            out.append(entry)
+        return out
+
+    def _cc_board_attr(self, spec, obj):
+        if not spec:
+            return None
+        if callable(spec):
+            return spec(obj)
+        attr = getattr(self, spec, None)
+        if callable(attr):
+            return attr(obj)
+        value = obj
+        for part in spec.split("__"):
+            value = getattr(value, part, None)
+            if value is None:
+                return None
+        return value() if callable(value) else value
+
+    def _cc_board_number(self, value):
+        try:
+            return float(value or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _cc_board_money(self, value):
+        from .charts import compact
+
+        number = self._cc_board_number(value)
+        return compact(number, self.board_prefix, self.board_suffix, 0 if abs(number) < 1000 else None)
+
+    def _cc_board_avatar(self, obj):
+        value = self._cc_board_attr(self.board_avatar, obj)
+        if value is None:
+            return None
+        if hasattr(value, "get_username"):
+            name = value.get_full_name() or value.get_username()
+            return {"name": name, "initials": "".join(w[0] for w in name.split()[:2]).upper()}
+        text = str(value)
+        if text.startswith(("http://", "https://", "/")):
+            return {"name": "", "url": text}
+        return {"name": text, "initials": "".join(w[0] for w in text.split()[:2]).upper()}
+
+    def cc_board_card(self, request, obj):
+        info = self.opts.app_label, self.opts.model_name
+        value = self._cc_board_attr(self.board_value, obj) if self.board_value else None
+        date = self._cc_board_attr(self.board_date, obj) if self.board_date else None
+        if date is not None and hasattr(date, "strftime"):
+            date = f"{date.day} {date.strftime('%b')}"
+        title = self._cc_board_attr(self.board_title, obj) if self.board_title else None
+        return {
+            "pk": str(obj.pk),
+            "title": title if title is not None else str(obj),
+            "subtitle": self._cc_board_attr(self.board_subtitle, obj) if self.board_subtitle else "",
+            "value": self._cc_board_number(value) if value is not None else None,
+            "value_text": self._cc_board_money(value) if value is not None else "",
+            "date": date or "",
+            "avatar": self._cc_board_avatar(obj) if self.board_avatar else None,
+            "url": reverse(f"admin:{info[0]}_{info[1]}_change", args=[obj.pk]),
+        }
+
+    def _cc_board_queryset(self, request):
+        try:
+            cl = self.get_changelist_instance(request)
+            return cl, cl.queryset
+        except Exception:
+            return None, self.get_queryset(request)
+
+    def _cc_board_totals(self, request, queryset, columns):
+        field = self._cc_board_field()
+        totals = {}
+        for column in columns:
+            items = queryset.filter(**{field.attname: column["raw"]})
+            count = items.count()
+            total = None
+            if self.board_value and isinstance(self.board_value, str):
+                try:
+                    self.opts.get_field(self.board_value)
+                    total = items.aggregate(v=models.Sum(self.board_value))["v"] or 0
+                except FieldDoesNotExist:
+                    total = sum(self._cc_board_number(self._cc_board_attr(self.board_value, o)) for o in items)
+            totals[column["value"]] = {"count": count, "sum": self._cc_board_money(total) if total is not None else ""}
+        return totals
+
+    def cc_board_view(self, request):
+        if not self.board_field or not self.has_view_or_change_permission(request):
+            raise PermissionDenied
+        from django.template.response import TemplateResponse
+
+        request._cc_model_admin = self
+        info = self.opts.app_label, self.opts.model_name
+        field = self._cc_board_field()
+        cl, queryset = self._cc_board_queryset(request)
+        columns = self.cc_board_columns(request)
+        totals = self._cc_board_totals(request, queryset, columns)
+        for column in columns:
+            items = queryset.filter(**{field.attname: column["raw"]})[: self.board_limit]
+            column["cards"] = [self.cc_board_card(request, obj) for obj in items]
+            column.update(totals[column["value"]])
+            column["more"] = max(0, column["count"] - len(column["cards"]))
+        query = request.GET.urlencode()
+        context = {
+            **self.admin_site.each_context(request),
+            "title": capfirst(self.opts.verbose_name_plural),
+            "opts": self.opts,
+            "cl": cl,
+            "columns": columns,
+            "board_field_name": capfirst(field.verbose_name),
+            "can_move": self.has_change_permission(request),
+            "move_url": reverse(f"admin:{info[0]}_{info[1]}_cc_board_move"),
+            "list_url": reverse(f"admin:{info[0]}_{info[1]}_changelist") + (f"?{query}" if query else ""),
+            "board_url": reverse(f"admin:{info[0]}_{info[1]}_cc_board"),
+            "query": query,
+            "cc_model_admin": self,
+            "has_add_permission": self.has_add_permission(request),
+            "add_url": reverse(f"admin:{info[0]}_{info[1]}_add"),
+            "total_count": sum(c["count"] for c in columns),
+        }
+        return TemplateResponse(request, ["cc_admin/board.html"], context)
+
+    def cc_board_move_view(self, request):
+        if request.method != "POST" or not self.board_field:
+            return JsonResponse({"ok": False, "error": "method"}, status=405)
+        field = self._cc_board_field()
+        obj = self.get_object(request, request.POST.get("pk", ""))
+        if obj is None:
+            return JsonResponse({"ok": False, "error": "missing"}, status=404)
+        if not self.has_change_permission(request, obj):
+            return JsonResponse({"ok": False, "error": "permission"}, status=403)
+        columns = self.cc_board_columns(request)
+        wanted = request.POST.get("value", "")
+        match = next((c for c in columns if c["value"] == wanted), None)
+        if match is None:
+            return JsonResponse({"ok": False, "error": "value"}, status=400)
+        before = getattr(obj, field.attname)
+        if str(before) != match["value"]:
+            with transaction.atomic():
+                setattr(obj, field.attname, match["raw"])
+                obj.save(update_fields=[field.attname])
+                self.log_change(request, obj, [{"changed": {"fields": [str(field.verbose_name)]}}])
+        _, queryset = self._cc_board_queryset(request)
+        return JsonResponse({"ok": True, "label": match["label"], "totals": self._cc_board_totals(request, queryset, columns)})
 
     def get_changelist(self, request, **kwargs):
         base = super().get_changelist(request, **kwargs)
@@ -373,6 +549,7 @@ class ModelAdminMixin:
                 "cc_model_admin": self,
                 "cc_sortable": self.cc_sortable(request),
                 "cc_sort_url": reverse(f"admin:{info[0]}_{info[1]}_cc_sort") if self.ordering_field else "",
+                "cc_board_url": reverse(f"admin:{info[0]}_{info[1]}_cc_board") if self.board_field else "",
             }
             extra.update(extra_context or {})
             response = super().changelist_view(request, extra)

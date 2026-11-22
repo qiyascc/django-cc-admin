@@ -7,7 +7,7 @@
 [![Docs](https://readthedocs.org/projects/django-cc-admin/badge/?version=latest)](https://django-cc-admin.readthedocs.io/en/latest/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-A new skin and a set of tools for the Django admin. It replaces the default look with one of fifteen themes, builds the dashboard from your settings, and updates lists, dashboards and badges live without a page reload. It adds realtime notifications with popups, sounds, desktop and push notifications, a command palette, keyboard shortcuts you can rebind, a GitHub style activity page for your team, better filters, row and page actions, CSV and JSON export, and a lot of small things the stock admin never had.
+A new skin and a set of tools for the Django admin. It replaces the default look with one of sixteen themes, builds the dashboard from your settings, and updates lists, dashboards and badges live without a page reload. It adds realtime notifications with popups, sounds, desktop and push notifications, a command palette, keyboard shortcuts you can rebind, a GitHub style activity page for your team, better filters, row and page actions, CSV and JSON export, and a lot of small things the stock admin never had.
 
 Your existing `ModelAdmin` classes keep working. Swap in `cc_admin.admin.ModelAdmin` only where you want the extra features.
 
@@ -62,6 +62,7 @@ pip install "django-cc-admin[push]"   # Web Push to phones and closed browsers
 | `rose` | floating | light, dark | Pink, round corners, pill buttons |
 | `ocean` | icon rail | light, dark | Deep teal |
 | `classic` | sidebar | light | A desktop from 1995 |
+| `volt` | sidebar | dark | Smoked glass, muted tiles, lime buttons |
 | `cc` | sidebar | dark, light | Ink and ice blue, from theqiyas.cc |
 
 Every user can pick a theme, mode (auto, light, dark) and density (compact, default, roomy) from the user menu or by pressing `t`. The choice is kept in a cookie, so the page renders in the right theme with no flash. Turn the switcher off with `THEME_SWITCHER: False` to force one theme for everybody.
@@ -81,7 +82,7 @@ Each picture shows the dashboard, the order list and a product form.
 | **Sunset** ![](https://raw.githubusercontent.com/qiyascc/django-cc-admin/main/docs/screenshots/sunset-light.jpg) | **Forest** ![](https://raw.githubusercontent.com/qiyascc/django-cc-admin/main/docs/screenshots/forest-light.jpg) |
 | **Mono** ![](https://raw.githubusercontent.com/qiyascc/django-cc-admin/main/docs/screenshots/mono-light.jpg) | **Rose** ![](https://raw.githubusercontent.com/qiyascc/django-cc-admin/main/docs/screenshots/rose-light.jpg) |
 | **Ocean** ![](https://raw.githubusercontent.com/qiyascc/django-cc-admin/main/docs/screenshots/ocean-light.jpg) | **Classic** ![](https://raw.githubusercontent.com/qiyascc/django-cc-admin/main/docs/screenshots/classic-light.jpg) |
-| **CC** ![](https://raw.githubusercontent.com/qiyascc/django-cc-admin/main/docs/screenshots/cc-dark.jpg) | |
+| **CC** ![](https://raw.githubusercontent.com/qiyascc/django-cc-admin/main/docs/screenshots/cc-dark.jpg) | **Volt** ![](https://raw.githubusercontent.com/qiyascc/django-cc-admin/main/docs/screenshots/volt-dark.jpg) |
 
 ## Settings
 
@@ -289,11 +290,12 @@ The dashboard is a twelve column grid of widgets. Each widget picks its data fro
 
 | Type | Data it expects |
 |---|---|
-| `kpi` | `value`: a number, or a dict with `value`, `delta` (percent), `delta_label`, `spark` (list of numbers), `prefix`, `suffix` |
-| `chart` | `kind` is `line`, `area`, `stacked-area`, `bar`, `stacked-bar` or `donut`. Line and bar take `{"labels": [...], "series": [{"name": ..., "values": [...]}]}`. Donut takes `[{"label": ..., "value": ..., "color": ...}]` |
+| `kpi` | `value`: a number, or a dict with `value`, `delta` (percent), `delta_label`, `spark` (list of numbers), `prefix`, `suffix`, `progress` (0 to 100) and `progress_label`. On the widget, `fill: True` paints the card in its `tone` |
+| `chart` | `kind` is `line`, `area`, `stacked-area`, `bar`, `stacked-bar` or `donut`. Line and bar take `{"labels": [...], "series": [{"name": ..., "values": [...]}]}`. Donut takes `[{"label": ..., "value": ..., "color": ...}]`. Bars also take `target` (a dashed line) and `highlight` (`"last"`, `"max"` or an index) |
+| `forecast` | `{"periods": [{"label": ..., "commit": ..., "likely": ..., "best": ..., "items": [...]}]}`. Nested bars with buttons for the three scenarios |
 | `table` | `{"headers": [...], "rows": [[cell, ...]], "align": ["", "right"]}`. A cell is text or a dict with `text`, `sub`, `link`, `badge` |
 | `list` | items with `title`, `subtitle`, `meta`, `link`, `icon`, `avatar`, `badge`, `badge_tone` |
-| `progress` | items with `label`, `value`, `total`, `display`, `tone` |
+| `progress` | items with `label`, `value`, `total`, `display`, `meta`, `tone`, `link`. `layout: "row"` puts each item on one line, good for pipeline stages |
 | `links` | items with `title`, `text`, `icon`, `link` |
 | `heatmap` | a dict of `date: count` |
 | `models` | `models`: a list like `["shop.order"]`, or nothing for every model. Shows counts |
@@ -553,6 +555,23 @@ More options:
 | `change_form_show_cancel_button` | A cancel button in the save bar. Defaults to `FORMS["show_cancel"]` |
 | `change_list_before_template`, `change_list_after_template` | Templates included above and below the list |
 | `change_form_before_template`, `change_form_after_template` | Templates included above and below the form |
+
+### Board
+
+Give a model admin a `board_field` and its list gets a board view: one column per status or stage, one card per record. Drag a card to another column, or focus it and press the arrow keys, and the change is saved and written to the history. The board keeps the list's filters and search, and users without the change permission can look but not move.
+
+```python
+@admin.register(Order)
+class OrderAdmin(ModelAdmin):
+    board_field = "status"
+    board_title = "customer__name"
+    board_value = "total"
+    board_prefix = "$"
+    board_date = "created_at"
+    board_tones = {"pending": "sand", "paid": "blue", "delivered": "olive", "cancelled": "rust"}
+```
+
+![Board, Volt theme](https://raw.githubusercontent.com/qiyascc/django-cc-admin/main/docs/screenshots/board.jpg)
 
 ### Sections
 

@@ -1,0 +1,51 @@
+{% extends "admin/base_site.html" %}
+{% load i18n cc_admin %}
+{% block bodyclass %}{{ block.super }} app-{{ opts.app_label }} model-{{ opts.model_name }} change-list cc-board-page cc-fullwidth{% endblock %}
+{% block breadcrumbs %}
+<ol class="breadcrumbs">
+  <li><a href="{% url 'admin:index' %}">{% translate 'Home' %}</a></li>
+  <li><a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a></li>
+  <li aria-current="page">{{ opts.verbose_name_plural|capfirst }}</li>
+</ol>
+{% endblock %}
+{% block coltype %}{% endblock %}
+{% block content_title %}
+  <div class="cc-title-row"><h1>{{ title }}</h1></div>
+  <p class="cc-lead">{% blocktranslate count counter=total_count %}{{ counter }} record{% plural %}{{ counter }} records{% endblocktranslate %} · {% blocktranslate with field=board_field_name %}grouped by {{ field }}{% endblocktranslate %}</p>
+{% endblock %}
+{% block object-tools %}
+<div class="cc-tools object-tools">
+  {% if has_add_permission %}<a href="{{ add_url }}" class="cc-btn cc-btn-primary">{% icon "plus" %}<span>{% blocktranslate with name=opts.verbose_name %}Add {{ name }}{% endblocktranslate %}</span></a>{% endif %}
+</div>
+{% endblock %}
+{% block content %}
+<div id="content-main">
+  <nav class="cc-viewtabs" aria-label="{% translate 'View' %}">
+    <a href="{{ list_url }}">{% translate 'List' %}</a>
+    <a href="{{ board_url }}{% if query %}?{{ query }}{% endif %}" class="is-active" aria-current="page">{% translate 'Board' %}</a>
+  </nav>
+  <div class="cc-board-tools">
+    <label class="cc-board-filter">{% icon "search" %}<input type="search" data-board-filter placeholder="{% translate 'Filter cards' %}" aria-label="{% translate 'Filter cards' %}"></label>
+  </div>
+  {% if can_move %}<p class="cc-board-hint">{% translate 'Drag a card to another column, or focus it and press' %} <kbd>←</kbd> <kbd>→</kbd></p>{% endif %}
+  <div class="cc-board" data-board data-move-url="{{ move_url }}{% if query %}?{{ query }}{% endif %}"{% if can_move %} data-can-move{% endif %} data-empty-text="{% translate 'Nothing here' %}" data-moved-text="{% translate 'Moved to' %}" data-fail-text="{% translate 'Could not move the card' %}">{% csrf_token %}
+    {% for col in columns %}
+      <section class="cc-board-col{% if col.tone %} cc-tone-{{ col.tone }}{% endif %}" data-col="{{ col.value }}"{% if col.color %} style="--tone:{{ col.color }}"{% endif %} aria-label="{{ col.label }}">
+        <header><span class="cc-dot"></span><span>{{ col.label }}</span><span class="cc-count" data-col-count>{{ col.count }}</span><span class="cc-sum" data-col-sum>{{ col.sum }}</span></header>
+        <div class="cc-board-cards" data-cards>
+          {% for card in col.cards %}
+            <article class="cc-board-card" data-card="{{ card.pk }}" tabindex="0"{% if can_move %} draggable="true"{% endif %}>
+              <div class="cc-card-row"><a class="cc-card-title" href="{{ card.url }}" draggable="false">{{ card.title }}</a>{% if card.value_text %}<span class="cc-card-value">{{ card.value_text }}</span>{% endif %}</div>
+              {% if card.subtitle %}<div class="cc-card-sub">{{ card.subtitle }}</div>{% endif %}
+              {% if card.avatar or card.date %}<div class="cc-card-foot">{% if card.avatar %}<span class="cc-board-av" title="{{ card.avatar.name }}">{% if card.avatar.url %}<img src="{{ card.avatar.url }}" alt="">{% else %}{{ card.avatar.initials }}{% endif %}</span>{% else %}<span></span>{% endif %}{% if card.date %}<span>{% icon "calendar" %}{{ card.date }}</span>{% endif %}</div>{% endif %}
+            </article>
+          {% empty %}
+            <div class="cc-board-empty" data-empty>{% translate 'Nothing here' %}</div>
+          {% endfor %}
+        </div>
+        {% if col.more %}<div class="cc-board-more">{% blocktranslate count counter=col.more %}{{ counter }} more{% plural %}{{ counter }} more{% endblocktranslate %}</div>{% endif %}
+      </section>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

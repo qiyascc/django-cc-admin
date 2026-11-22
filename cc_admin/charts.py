@@ -121,12 +121,14 @@ def _grid(ticks):
     return "".join(lines)
 
 
-def _legend(series):
-    if len(series) < 2 and not (series and series[0]["name"]):
+def _legend(series, target=None):
+    if len(series) < 2 and not (series and series[0]["name"]) and not target:
         return ""
     items = "".join(
-        format_html('<span><i style="background:{}"></i>{}</span>', mark_safe(s["color"]), s["name"]) for s in series
+        format_html('<span><i style="background:{}"></i>{}</span>', mark_safe(s["color"]), s["name"]) for s in series if s["name"]
     )
+    if target:
+        items += format_html('<span class="cc-legend-target"><i></i>{}</span>', target)
     return f'<div class="cc-chart-legend">{items}</div>'
 
 
@@ -186,7 +188,7 @@ def line(labels, series, height=240, area=True, smooth=True, stacked=False, pref
     )
 
 
-def bar(labels, series, height=240, stacked=False, prefix="", suffix="", legend=True):
+def bar(labels, series, height=240, stacked=False, prefix="", suffix="", legend=True, target=None, target_label="Target", highlight=None):
     labels = list(labels)
     series = _series(series)
     count = max([len(labels)] + [len(s["values"]) for s in series]) or 1
@@ -194,22 +196,34 @@ def bar(labels, series, height=240, stacked=False, prefix="", suffix="", legend=
         peak = max([sum(s["values"][i] if i < len(s["values"]) else 0 for s in series) for i in range(count)] + [0])
     else:
         peak = max([v for s in series for v in s["values"]] + [0])
+    if target is not None:
+        target = _num(target)
+        peak = max(peak, target)
     top, ticks = nice_max(peak)
+    if highlight == "last":
+        highlight = count - 1
+    elif highlight == "max":
+        totals = [sum(s["values"][i] if i < len(s["values"]) else 0 for s in series) for i in range(count)]
+        highlight = totals.index(max(totals)) if totals else None
     columns = []
     for i in range(count):
         bars = []
         for s in series:
             v = s["values"][i] if i < len(s["values"]) else 0
             bars.append(f'<i style="--v:{v / top * 100 if top else 0:.3f}%;background:{s["color"]}"></i>')
-        columns.append(f'<div class="cc-bar{" cc-bar-stack" if stacked else ""}" data-i="{i}">{"".join(bars)}</div>')
+        hi = " is-hi" if highlight is not None and i == highlight else ""
+        columns.append(f'<div class="cc-bar{" cc-bar-stack" if stacked else ""}{hi}" data-i="{i}" style="--d:{i}">{"".join(bars)}</div>')
     labels_html = "".join(f"<span>{escape(label)}</span>" for label in labels)
+    target_html = ""
+    if target is not None and top:
+        target_html = f'<div class="cc-chart-target" style="--t:{target / top * 100:.3f}%"><span>{escape(target_label)} {escape(compact(target, prefix, suffix))}</span></div>'
     return mark_safe(
         f'<div class="cc-chart cc-chart-bar" style="--cc-chart-h:{int(height)}px;--n:{count}" data-chart="{escape(_payload(labels, series, prefix, suffix))}">'
         f'<div class="cc-chart-body"><div class="cc-chart-y">{_y_labels(top, ticks, prefix, suffix)}</div>'
         f'<div class="cc-chart-plot"><svg viewBox="0 0 {WIDTH} {HEIGHT}" preserveAspectRatio="none" aria-hidden="true">{_grid(ticks)}</svg>'
-        f'<div class="cc-bars">{"".join(columns)}</div></div></div>'
+        f'<div class="cc-bars">{"".join(columns)}</div>{target_html}</div></div>'
         f'<div class="cc-chart-xb">{labels_html}</div>'
-        f"{_legend(series) if legend else ''}</div>"
+        f"{_legend(series, target_label if target is not None else None) if legend else ''}</div>"
     )
 
 

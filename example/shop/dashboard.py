@@ -248,3 +248,104 @@ def fulfilment(request):
         items.append({"tone": tone, "title": f"{day:%a %b %d} · {row['n']} orders, {row['late']} open"})
     shipped = sum(1 for item in items if item["tone"] == "success")
     return [{"label": "Orders shipped on time", "summary": f"{shipped} of {days} days", "items": items}]
+
+
+def _month_starts(count):
+    today = timezone.localdate().replace(day=1)
+    months = []
+    for _ in range(count):
+        months.append(today)
+        today = (today - datetime.timedelta(days=1)).replace(day=1)
+    return list(reversed(months))
+
+
+def monthly_target():
+    start = _month_starts(12)[0]
+    rows = Order.objects.filter(status__in=PAID, created_at__date__gte=start).annotate(m=TruncMonth("created_at")).values("m").annotate(v=Sum("total"))
+    values = [float(r["v"] or 0) for r in rows]
+    mean = sum(values) / len(values) if values else 0
+    return Decimal(round(mean * 1.1, -3) or 1000)
+
+
+def month_revenue(request):
+    starts = _month_starts(12)
+    rows = (
+        Order.objects.filter(status__in=PAID, created_at__date__gte=starts[0])
+        .annotate(m=TruncMonth("created_at"))
+        .values("m")
+        .annotate(v=Sum("total"))
+    )
+    found = {r["m"].date() if hasattr(r["m"], "date") else r["m"]: float(r["v"] or 0) for r in rows}
+    return {
+        "labels": [m.strftime("%b") for m in starts],
+        "series": [{"name": "Revenue", "values": [found.get(m, 0) for m in starts]}],
+        "target": float(monthly_target()),
+    }
+
+
+def month_progress(request):
+    start = timezone.localdate().replace(day=1)
+    value = Order.objects.filter(status__in=PAID, created_at__date__gte=start).aggregate(s=Sum("total"))["s"] or Decimal("0")
+    target = monthly_target()
+    share = float(value / target * 100)
+    return {"value": value, "prefix": "$", "progress": share, "progress_label": f"{share:.0f}% of the ${target:,.0f} target"}
+
+
+def open_value(request):
+    qs = Order.objects.filter(status__in=["pending", "paid"])
+    return {"value": qs.aggregate(s=Sum("total"))["s"] or 0, "prefix": "$", "footer": f"{qs.count()} open orders"}
+
+
+def shipped_value(request):
+    qs = Order.objects.filter(status="shipped")
+    return {"value": qs.aggregate(s=Sum("total"))["s"] or 0, "prefix": "$", "footer": f"{qs.count()} on the way"}
+
+
+def delivery_rate(request):
+    done = Order.objects.filter(status__in=["delivered", "refunded", "cancelled"])
+    total = done.count() or 1
+    delivered = done.filter(status="delivered").count()
+    return {"value": f"{delivered / total * 100:.0f}%", "footer": f"{delivered} of {total} closed orders delivered"}
+
+
+def status_stages(request):
+    labels = dict(Order.Status.choices)
+    rows = Order.objects.values("status").annotate(n=Count("id"), v=Sum("total"))
+    found = {r["status"]: r for r in rows}
+    peak = max((float(r["v"] or 0) for r in rows), default=0) or 1
+    tones = {"pending": "sand", "paid": "blue", "shipped": "blue", "delivered": "accent", "refunded": "neutral", "cancelled": "rust"}
+    items = []
+    for key in ["pending", "paid", "shipped", "delivered", "refunded"]:
+        r = found.get(key, {"n": 0, "v": 0})
+        items.append({"label": labels[key], "meta": f"{r['n']} orders", "value": float(r["v"] or 0), "total": peak, "tone": tones[key], "link": f"/admin/shop/order/?status__exact={key}"})
+    return items
+
+
+def projection(request):
+    starts = _month_starts(6)
+    rows = (
+        Order.objects.filter(status__in=PAID, created_at__date__gte=starts[0])
+        .annotate(m=TruncMonth("created_at"))
+        .values("m")
+        .annotate(v=Sum("total"))
+    )
+    history = [float(r["v"] or 0) for r in rows] or [0]
+    base = sum(history) / len(history)
+    open_orders = list(Order.objects.filter(status__in=["pending", "paid"]).select_related("customer").order_by("-total")[:12])
+    month = timezone.localdate().replace(day=1)
+    periods = []
+    for i, factor in enumerate((1.0, 0.82, 0.6, 0.0)):
+        label_day = month
+        for _ in range(i):
+            label_day = (label_day + datetime.timedelta(days=32)).replace(day=1)
+        chunk = open_orders[i * 4:(i + 1) * 4] if factor else []
+        periods.append(
+            {
+                "label": label_day.strftime("%b"),
+                "commit": base * 0.55 * factor,
+                "likely": base * 0.8 * factor,
+                "best": base * factor,
+                "items": [{"title": o.customer.name, "sub": f"{o.number} · {o.get_status_display()}", "value": o.total, "link": f"/admin/shop/order/{o.pk}/change/"} for o in chunk],
+            }
+        )
+    return {"periods": periods}

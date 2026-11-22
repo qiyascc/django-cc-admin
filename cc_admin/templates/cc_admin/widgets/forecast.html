@@ -1,0 +1,32 @@
+{% load cc_admin %}{% with d=widget.data %}
+<section class="cc-card cc-span-{{ widget.width }} cc-widget-forecast" data-forecast>
+  {% include "cc_admin/widgets/_head.html" %}
+  <div class="cc-forecast-head">
+    <div>
+      <div class="cc-forecast-total"><span data-forecast-total>{{ d.total }}</span><small>{{ d.note }}</small></div>
+    </div>
+    <div class="cc-seg" role="group">
+      {% for sc in d.scenarios %}<button type="button" data-scenario="{{ sc.key }}" data-total="{{ sc.total }}" aria-pressed="{% if sc.key == d.chosen %}true{% else %}false{% endif %}">{{ sc.label }}</button>{% endfor %}
+    </div>
+  </div>
+  <div class="cc-forecast-cols" style="--n:{{ d.periods|length }};--cc-chart-h:{{ widget.spec.height|default:180 }}px">
+    {% for p in d.periods %}
+      <div>
+        <div class="cc-forecast-bar{% if p.empty %} is-empty{% endif %}"><div class="cc-fc-outer" style="--best:{{ p.best_h|floatformat:'2u' }}%;--d:{{ p.index }}" title="{% for sc in d.scenarios %}{{ sc.label }} {% for k, v in p.texts.items %}{% if k == sc.key %}{{ v }}{% endif %}{% endfor %}{% if not forloop.last %} · {% endif %}{% endfor %}">{% if not p.empty %}<div class="cc-fc-mid" style="--mid:{{ p.mid_h|floatformat:'2u' }}%"></div><div class="cc-fc-in" style="--in:{{ p.in_h|floatformat:'2u' }}%"></div>{% endif %}</div></div>
+        <div class="cc-forecast-label">{{ p.label }}<small data-forecast-value{% for k, v in p.texts.items %} data-{{ k }}="{{ v }}"{% endfor %}>{% for k, v in p.texts.items %}{% if k == d.chosen %}{{ v }}{% endif %}{% endfor %}</small></div>
+      </div>
+    {% endfor %}
+  </div>
+  <div class="cc-chart-legend"><span><i style="background:var(--cc-chart-2)"></i>{{ d.scenarios.0.label }}</span><span><i style="background:var(--cc-chart-1)"></i>{{ d.scenarios.1.label }}</span><span><i style="background:color-mix(in srgb, var(--cc-chart-1) 55%, var(--cc-surface-3))"></i>{{ d.scenarios.2.label }}</span></div>
+  {% if widget.spec.periods is not False %}
+  <div class="cc-forecast-periods" style="--n:{{ d.periods|length }}">
+    {% for p in d.periods %}
+      <div class="cc-forecast-period">
+        <header><b>{{ p.label }}</b><span>{{ p.count }} {{ d.unit }}</span></header>
+        {% if p.items %}<ul>{% for item in p.items|slice:":4" %}<li>{% if item.url %}<a href="{{ item.url }}">{{ item.title }}</a>{% else %}<span>{{ item.title }}</span>{% endif %}<b>{{ item.display }}</b>{% if item.sub %}<small>{{ item.sub }}</small>{% endif %}</li>{% endfor %}</ul>{% else %}<p>{{ d.empty_text }}</p>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endwith %}

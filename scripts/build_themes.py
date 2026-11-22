@@ -1222,6 +1222,100 @@ DENSITY = (
 )
 
 
+theme(
+    "volt",
+    {
+        **DARK_SHADOWS,
+        "bg": "#1a1918",
+        "bg-2": "rgb(255 255 255 / .035)",
+        "surface": "rgb(255 255 255 / .045)",
+        "surface-2": "rgb(255 255 255 / .065)",
+        "surface-3": "rgb(255 255 255 / .1)",
+        "border": "rgb(255 255 255 / .07)",
+        "border-strong": "rgb(255 255 255 / .14)",
+        "text": "#f3f2ec",
+        "text-2": "#b9b7ae",
+        "text-3": "#807e76",
+        "accent": "#c6f24e",
+        "accent-2": "#d6f77a",
+        "accent-fg": "#141a06",
+        "accent-text": "#d3f56f",
+        "accent-soft": "rgb(198 242 78 / .12)",
+        "success": "#a6e35a",
+        "warning": "#e8c76a",
+        "danger": "#f0806b",
+        "info": "#8db6ec",
+        "blue": "#4a5a70",
+        "olive": "#56622f",
+        "rust": "#64403a",
+        "sand": "#6b5f3e",
+        "plum": "#55405f",
+        "fill-mix": "100%",
+        "font": '"Geist", ui-sans-serif, system-ui, sans-serif',
+        "font-head": '"Geist", ui-sans-serif, system-ui, sans-serif',
+        "head-weight": "600",
+        "head-track": "-0.025em",
+        "h1": "28px",
+        "radius": "12px",
+        "radius-sm": "10px",
+        "radius-lg": "18px",
+        "btn-radius": "99px",
+        "glass": "blur(22px) saturate(1.3)",
+        "side-bg": "rgb(20 19 18 / .55)",
+        "side-border": "rgb(255 255 255 / .06)",
+        "side-text": "#b9b7ae",
+        "side-text-strong": "#f3f2ec",
+        "side-title": "#7a7870",
+        "side-hover": "rgb(255 255 255 / .05)",
+        "side-active": "rgb(255 255 255 / .09)",
+        "side-active-text": "#f3f2ec",
+        "side-active-shadow": "none",
+        "side-icon": "#8d8b83",
+        "side-icon-active": "#f3f2ec",
+        "top-bg": "rgb(26 25 24 / .55)",
+        "input-bg": "rgb(255 255 255 / .05)",
+        "input-border": "rgb(255 255 255 / .1)",
+        "th-bg": "rgb(255 255 255 / .03)",
+        "row-hover": "rgb(255 255 255 / .035)",
+        "row-selected": "rgb(198 242 78 / .08)",
+        "grid-line": "rgb(255 255 255 / .08)",
+        "heat-0": "rgb(255 255 255 / .06)",
+        "heat": "#c6f24e",
+        "card-shadow": "0 1px 0 rgb(255 255 255 / .04) inset, 0 18px 50px -24px rgb(0 0 0 / .7)",
+        "menu-bg": "#242321",
+        "chart-1": "#8db6ec",
+        "chart-2": "#c6f24e",
+        "chart-3": "#e8d49a",
+        "chart-4": "#e8907c",
+        "chart-5": "#9ad1b4",
+        "chart-6": "#b9a3e3",
+    },
+    extra="""
+& body { background: radial-gradient(900px 620px at 6% -8%, rgb(120 98 58 / .55) 0%, transparent 62%), radial-gradient(800px 560px at 96% 4%, rgb(92 100 112 / .45) 0%, transparent 60%), radial-gradient(1100px 700px at 50% 120%, rgb(70 60 48 / .5) 0%, transparent 60%), #1a1918; background-attachment: fixed; }
+& .cc-menu, & .cc-palette-box, & .cc-theme-panel, & .cc-keys, & .cc-drawer, & .cc-confirm, & .cc-toast, & .calendarbox, & .clockbox, & .select2-dropdown, & .cc-chart-tip { background: var(--cc-menu-bg) !important; }
+& .cc-pagehead h1 { text-decoration: underline; text-decoration-color: rgb(141 182 236 / .75); text-decoration-thickness: 3px; text-underline-offset: 7px; text-decoration-skip-ink: none; }
+& .cc-palette-trigger { border-radius: 99px; background: rgb(255 255 255 / .05); }
+& .cc-palette-trigger kbd { border-radius: 6px; }
+& .cc-brand-mark { background: #c6f24e; color: #141a06; border-radius: 9px; }
+& .cc-nav-item { border-radius: 10px; }
+& .cc-card, & .cc-changelist, & .cc-fieldset { border-color: rgb(255 255 255 / .06); }
+& .cc-kpi.cc-fill { border-color: transparent; }
+& .cc-board-col > header .cc-dot, & .cc-bars-row .cc-progress i { filter: brightness(1.9) saturate(1.15); }
+& .cc-bars-row .cc-tone-accent i { filter: none; }
+& .cc-bar i { border-radius: 7px 7px 4px 4px; }
+& .cc-progress { height: 6px; background: rgb(255 255 255 / .08); }
+& .cc-submit { background: rgb(26 25 24 / .7); }
+& .cc-actionbar { background: #c6f24e; color: #141a06; }
+& .cc-login-card { background: transparent; }
+& .cc-login-art { --cc-login-bg: transparent; --cc-login-fg: #f3f2ec; }
+& .cc-content { animation: cc-volt-in .55s cubic-bezier(.2, .7, .2, 1) both; }
+& .cc-side { transition: width .35s cubic-bezier(.2, .7, .2, 1); }
+@keyframes cc-volt-in { from { opacity: 0; filter: blur(10px); transform: translateY(6px) scale(.995); } }
+""",
+    base_scheme="dark",
+)
+
+
 def block(selector, tokens):
     if not tokens:
         return ""
