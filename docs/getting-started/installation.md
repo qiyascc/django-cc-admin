@@ -59,7 +59,7 @@ poetry add django-cc-admin
 
 :::{tab-item} requirements.txt
 ```text
-django-cc-admin==0.2.0
+django-cc-admin==0.2.1
 ```
 
 Then run `pip install -r requirements.txt`.

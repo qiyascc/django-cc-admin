@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1
+
+Released on 2026-11-25.
+
+- Project and author links point to qiyas.cc, the new address of the site. The description of the CC theme follows.
+
 ## 0.2.0
 
 Released on 2026-11-22.

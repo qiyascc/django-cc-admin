@@ -56,7 +56,7 @@ django-cc-admin follows the usual pattern for Django apps: upgrade the package, 
 In production, pin an exact version and upgrade on purpose:
 
 ```text
-django-cc-admin==0.2.0
+django-cc-admin==0.2.1
 ```
 
 ## What survives an upgrade
