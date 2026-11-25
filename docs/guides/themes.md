@@ -21,7 +21,7 @@ django-cc-admin ships sixteen themes. They are more than colour swaps: each one 
 | `ocean` | Ocean | icon rail | light, dark | Teal depths. |
 | `classic` | Classic | sidebar | light | A desktop from 1995. |
 | `volt` | Volt | sidebar | dark | Smoked glass over a warm dark backdrop, muted blue, olive and rust tiles, lime buttons, underlined titles and soft blur when a page opens. |
-| `cc` | CC | sidebar | dark, light | Ink and ice blue, the look of theqiyas.cc. |
+| `cc` | CC | sidebar | dark, light | Ink and ice blue, the look of qiyas.cc. |
 
 The four layouts are:
 

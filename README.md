@@ -21,7 +21,7 @@ Works with Django 5.0, 5.1, 5.2, 6.0 and 6.1, Python 3.10 and up.
 pip install django-cc-admin
 ```
 
-The package lives on PyPI: [pypi.org/project/django-cc-admin](https://pypi.org/project/django-cc-admin/). The wheel and the source archive are also attached to every [GitHub release](https://github.com/qiyascc/django-cc-admin/releases). More about the project on [theqiyas.cc](https://theqiyas.cc/projects/django-cc-admin/). The full documentation, with a quickstart, a guide for every feature, recipes and a settings reference, is at [django-cc-admin.readthedocs.io](https://django-cc-admin.readthedocs.io/).
+The package lives on PyPI: [pypi.org/project/django-cc-admin](https://pypi.org/project/django-cc-admin/). The wheel and the source archive are also attached to every [GitHub release](https://github.com/qiyascc/django-cc-admin/releases). More about the project on [qiyas.cc](https://qiyas.cc/projects/django-cc-admin/). The full documentation, with a quickstart, a guide for every feature, recipes and a settings reference, is at [django-cc-admin.readthedocs.io](https://django-cc-admin.readthedocs.io/).
 
 Put `cc_admin` above `django.contrib.admin`:
 
@@ -63,7 +63,7 @@ pip install "django-cc-admin[push]"   # Web Push to phones and closed browsers
 | `ocean` | icon rail | light, dark | Deep teal |
 | `classic` | sidebar | light | A desktop from 1995 |
 | `volt` | sidebar | dark | Smoked glass, muted tiles, lime buttons |
-| `cc` | sidebar | dark, light | Ink and ice blue, from theqiyas.cc |
+| `cc` | sidebar | dark, light | Ink and ice blue, from qiyas.cc |
 
 Every user can pick a theme, mode (auto, light, dark) and density (compact, default, roomy) from the user menu or by pressing `t`. The choice is kept in a cookie, so the page renders in the right theme with no flash. Turn the switcher off with `THEME_SWITCHER: False` to force one theme for everybody.
 
@@ -758,7 +758,7 @@ Themes are defined in `scripts/build_themes.py`, which writes `cc_admin/static/c
 
 - Documentation: [django-cc-admin.readthedocs.io](https://django-cc-admin.readthedocs.io/)
 - Source: [github.com/qiyascc/django-cc-admin](https://github.com/qiyascc/django-cc-admin)
-- Author: [Qiyas Sadıqov](https://theqiyas.cc), more projects at [theqiyas.cc](https://theqiyas.cc)
+- Author: [Qiyas Sadıqov](https://qiyas.cc), more projects at [qiyas.cc](https://qiyas.cc)
 
 ## License
 

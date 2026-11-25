@@ -2,13 +2,13 @@
 
 django-cc-admin is written and maintained by **Qiyas Sadıqov**.
 
-- Website: [theqiyas.cc](https://theqiyas.cc)
-- Project page: [theqiyas.cc/projects/django-cc-admin](https://theqiyas.cc/projects/django-cc-admin/)
+- Website: [qiyas.cc](https://qiyas.cc)
+- Project page: [qiyas.cc/projects/django-cc-admin](https://qiyas.cc/projects/django-cc-admin/)
 - Source: [github.com/qiyascc/django-cc-admin](https://github.com/qiyascc/django-cc-admin)
 - Package: [pypi.org/project/django-cc-admin](https://pypi.org/project/django-cc-admin/)
 - Releases: [github.com/qiyascc/django-cc-admin/releases](https://github.com/qiyascc/django-cc-admin/releases)
 
-More projects, including other Django packages and Python SDKs, are listed on [theqiyas.cc](https://theqiyas.cc).
+More projects, including other Django packages and Python SDKs, are listed on [qiyas.cc](https://qiyas.cc).
 
 ## Related projects
 

@@ -16,8 +16,8 @@ PACKAGE = "cc_admin"
 DIST = "django-cc-admin"
 TITLE = "django-cc-admin"
 REPO = "https://github.com/qiyascc/django-cc-admin"
-SITE = "https://theqiyas.cc"
-PROJECT_PAGE = "https://theqiyas.cc/projects/django-cc-admin/"
+SITE = "https://qiyas.cc"
+PROJECT_PAGE = "https://qiyas.cc/projects/django-cc-admin/"
 
 if not settings.configured:
     settings.configure(
@@ -112,6 +112,6 @@ html_theme_options = {
     "footer_icons": [
         {"name": "GitHub", "url": REPO, "html": GITHUB, "class": ""},
         {"name": "PyPI", "url": f"https://pypi.org/project/{DIST}/", "html": PYPI, "class": ""},
-        {"name": "theqiyas.cc", "url": SITE, "html": GLOBE, "class": ""},
+        {"name": "qiyas.cc", "url": SITE, "html": GLOBE, "class": ""},
     ],
 }
